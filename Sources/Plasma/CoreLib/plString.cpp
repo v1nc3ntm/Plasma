@@ -52,6 +52,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 const plString plString::Null;
 
+#if __MINGW32__
+size_t strnlen(const char * start, size_t len) {
+    const char * end = (const char *)memchr(start, '\0', len);
+    return end ? end - start : len;
+}
+#endif
+
 #if !defined(WCHAR_BYTES) || (WCHAR_BYTES != 2) && (WCHAR_BYTES != 4)
 #error "WCHAR_BYTES must be either 2 (16-bit) or 4 (32-bit)!"
 #endif

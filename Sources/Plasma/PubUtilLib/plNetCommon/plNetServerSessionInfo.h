@@ -49,6 +49,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnNetCommon/plNetServers.h"
 #include "plNetCommon/plSpawnPointInfo.h"
 #include "pnUUID/pnUUID.h"
+#include <string>
 
 
 class hsStream;

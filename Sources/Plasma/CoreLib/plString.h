@@ -45,6 +45,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "HeadSpin.h"
 #include <vector>
+#include <sys/types.h>
 
 /** Single Unicode character code unit */
 typedef unsigned int UniChar;

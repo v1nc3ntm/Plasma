@@ -49,6 +49,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "Pch.h"
 #pragma hdrstop
 
+#if __MINGW32__
+#	define swprintf snwprintf
+#endif
+
 #ifdef CLIENT
 
 /*****************************************************************************

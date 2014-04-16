@@ -52,6 +52,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 // It changes the logic by which the decision to attempt a reconnect is made.
 #define LOAD_BALANCER_HARDWARE
 
+#if __MINGW32__
+size_t __cdecl wcsnlen(const wchar_t *str, size_t len) {
+    size_t l = 0;
+    while (l++ < len && *str != 0)
+        str++;
+    return l;
+}
+#endif
 
 namespace Ngl { namespace File {
 /*****************************************************************************

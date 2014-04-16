@@ -45,6 +45,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #if HS_BUILD_FOR_WIN32
 #   include "hsWindows.h"
 #   include <shlobj.h>
+#   include <io.h>
 #else
 #   include <limits.h>
 #   include <unistd.h>
