@@ -171,10 +171,18 @@ endif()
 if (WIN32)
     target_link_libraries(plClient rpcrt4)
     target_link_libraries(plClient version)
-    target_link_libraries(plClient vfw32)
     target_link_libraries(plClient ws2_32)
     target_link_libraries(plClient winmm)
     target_link_libraries(plClient strmiids)
+    
+    if(MINGW)
+        target_link_libraries(plClient avifil32)
+        
+        # work-around for inordered static librairies
+        string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+    else(MINGW)
+        target_link_libraries(plClient vfw32)
+    endif(MINGW)
 endif(WIN32)
 
 source_group("Source Files" FILES ${plClient_SOURCES})

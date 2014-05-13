@@ -6,7 +6,7 @@ endif()
 
 
 #This isn't quite right, but we'll assume they are all at the same place.
-find_path(PHYSX_SDK_PATH Cooking/Include/NxCooking.h
+find_path(PHYSX_SDK_PATH Cooking/include/NxCooking.h
           /usr/local/include
           /usr/include
           "C:/Program Files/AGEIA Technologies/AGEIA PhysX SDK/v2.6.4/SDKs"

@@ -66,6 +66,22 @@ uint8_t   plInputManager::bRecenterMouse = 0;
 HWND    plInputManager::fhWnd = nil;
 #define NUM_ACTIONS     17
 
+#ifdef __MINGW32__
+#   define DIVIRTUAL_FIGHTING_THIRDPERSON   0x0A000000
+#   define DIAXIS_TPS_MOVE                  0x0A010202
+#   define DIAXIS_TPS_TURN                  0x0A020201
+#   define DIBUTTON_TPS_RUN                 0x0A000401
+#   define DIBUTTON_TPS_ACTION              0x0A000402
+#   define DIBUTTON_TPS_SELECT              0x0A000403
+#   define DIBUTTON_TPS_USE                 0x0A000404
+#   define DIBUTTON_TPS_JUMP                0x0A000405
+#   define DIBUTTON_TPS_STEPLEFT            0x0A004407
+#   define DIBUTTON_TPS_STEPRIGHT           0x0A004408
+#   define DIAXIS_ANY_1                     0xFF004201
+#   define DIAXIS_ANY_2                     0xFF004202
+#   define DIBUTTON_ANY(i)                  (0xFF004400|i)
+#endif
+
 struct plDIDevice
 {
     plDIDevice() : fDevice(nil), fCaps(nil) {;}

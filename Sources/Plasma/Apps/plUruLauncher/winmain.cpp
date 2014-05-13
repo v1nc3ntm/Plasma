@@ -57,6 +57,9 @@ Mead, WA   99021
 
 // ===================================================
 
+#ifdef __MINGW32__
+#   define ERROR_ELEVATION_REQUIRED 740
+#endif
 #define PLASMA_PHAILURE 1
 #define PLASMA_OK 0
 

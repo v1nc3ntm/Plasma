@@ -20,5 +20,5 @@ endif()
 
 # Platform specific libs
 if(WIN32)
-    target_link_libraries(plCrashHandler Dbghelp)
+    target_link_libraries(plCrashHandler dbghelp)
 endif(WIN32)

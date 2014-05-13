@@ -442,7 +442,7 @@ inline float hsDegreesToRadians(float deg) { return float(deg * (M_PI / 180)); }
 inline float hsRadiansToDegrees(float rad) { return float(rad * (180 / M_PI)); }
 #define hsInvert(a) (1 / (a))
 
-#ifdef _MSC_VER
+#if _MSC_VER || __MINGW32__
 #   define ALIGN(n) __declspec(align(n))
 #else
 #   define ALIGN(n) __atribute__(aligned(n))
