@@ -179,7 +179,7 @@ if (WIN32)
         target_link_libraries(plClient avifil32)
         
         # work-around for inordered static librairies
-        string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+        string(REPLACE "<LINK_LIBRARIES>" "-Wl,-( <LINK_LIBRARIES> -Wl,-)" CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
     else(MINGW)
         target_link_libraries(plClient vfw32)
     endif(MINGW)

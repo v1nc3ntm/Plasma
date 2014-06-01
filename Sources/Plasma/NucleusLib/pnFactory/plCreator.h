@@ -90,7 +90,7 @@ public:                                                                         
                                                                                     \
 };                                                                                  \
 static plClassName##__Creator   static##plClassName##__Creator;                     \
-uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
+//uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
 
 #define REGISTER_NONCREATABLE( plClassName )                                        \
                                                                                     \
@@ -116,7 +116,7 @@ public:                                                                         
                                                                                     \
 };                                                                                  \
 static plClassName##__Creator   static##plClassName##__Creator;                     \
-uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
+//uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
 
 #define DECLARE_EXTERNAL_CREATABLE( plClassName )                                   \
                                                                                     \
@@ -149,7 +149,7 @@ public:                                                                         
                                                                                     \
 };                                                                                  \
 static plClassName##__Creator   static##plClassName##__Creator;                     \
-uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
+//uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
 
 #define REGISTER_EXTERNAL_CREATABLE(plClassName)                                    \
 static##plClassName##__Creator.Register();                                          //
@@ -181,7 +181,7 @@ public:                                                                         
                                                                                     \
 };                                                                                  \
 static plClassName##__Creator   static##plClassName##__Creator;                     \
-uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
+//uint16_t plClassName::plClassName##ClassIndex = 0;                                    //
 
 
 #endif // plCreator_inc
