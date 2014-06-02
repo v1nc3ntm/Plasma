@@ -40,39 +40,50 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include "HeadSpin.h"
+#include "plCrashBase.h"
+
 #include "plCrashSrv.h"
 #include "plCrash_Private.h"
 #include "plProduct.h"
 #include "plFileSystem.h"
 
-#ifdef HS_BUILD_FOR_WIN32
-
 #include <dbghelp.h>
 #include <shlobj.h>
 
+struct plCrashSrv::Private {
+    static plCrashMemLink* sLink;
+    static HANDLE sLinkH;
+
+    void IHandleCrash();
+};
+plCrashMemLink* plCrashSrv::Private::sLink = nullptr;
+HANDLE plCrashSrv::Private::sLinkH = NULL;
+
 plCrashSrv::plCrashSrv(const char* file)
-    : fLink(nil), fLinkH(nil)
 {
     // Init semas
-    IInit(file);
+    plCrashBase::Init(file);
 
     // Open the linked memory
-    fLinkH = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, file);
-    hsAssert(fLinkH, "Failed to open plCrashHandler mapping");
-    if (!fLinkH)
+    sLinkH = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, file);
+    hsAssert(sLinkH, "Failed to open plCrashHandler mapping");
+    if (!sLinkH)
         return;
 
     // Try to map it
-    fLink = (plCrashMemLink*)MapViewOfFile(fLinkH, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(plCrashMemLink));
-    hsAssert(fLink, "Failed to map plCrashMemLink");
+    fLink = (plCrashMemLink*)MapViewOfFile(sLinkH, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(plCrashMemLink));
+    hsAssert(sLink, "Failed to map plCrashMemLink");
 }
 
 plCrashSrv::~plCrashSrv()
 {
-    if (fLink)
-        UnmapViewOfFile((LPCVOID)fLink);
-    if (fLinkH)
-        CloseHandle(fLinkH);
+    if (sLink)
+        UnmapViewOfFile((LPCVOID)sLink);
+    if (sLinkH)
+        CloseHandle(sLinkH);
+    
+    plCrashBase::Close();
 }
 
 void plCrashSrv::IHandleCrash()
@@ -89,32 +100,25 @@ void plCrashSrv::IHandleCrash()
 
     MINIDUMP_EXCEPTION_INFORMATION e;
     e.ClientPointers = TRUE;
-    e.ExceptionPointers = fLink->fExceptionPtrs;
-    e.ThreadId = fLink->fClientThreadID;
-    MiniDumpWriteDump(fLink->fClientProcess, fLink->fClientProcessID, file, MiniDumpNormal, &e, NULL, NULL);
+    e.ExceptionPointers = sLink->fExceptionPtrs;
+    e.ThreadId = sLink->fClientThreadID;
+    MiniDumpWriteDump(sLink->fClientProcess, sLink->fClientProcessID, file, MiniDumpNormal, &e, NULL, NULL);
     CloseHandle(file);
 }
 
-#else
-#   error "Implement plCrashSrv for this platform"
-#endif
-
 void plCrashSrv::HandleCrash()
 {
-    if (!fLink)
+    if (!sLink)
         FATAL("plCrashMemLink is nil!");
-    fLink->fSrvReady = true; // mark us as ready to receive crashes
+    sLink->fSrvReady = true; // mark us as ready to receive crashes
 
-#ifdef HS_BUILD_FOR_WIN32
     // In Win32 land we have to hackily handle the client process exiting, so we'll wait on both
     // the crashed semaphore and the client process...
-    HANDLE hack[2] = { fLink->fClientProcess, fCrashed->GetHandle() };
+    HANDLE hack[2] = { sLink->fClientProcess, plCrashBase::gCrashed->GetHandle() };
     DWORD result = WaitForMultipleObjects(arrsize(hack), hack, FALSE, INFINITE);
     hsAssert(result != WAIT_FAILED, "WaitForMultipleObjects failed");
-#else
-    fCrashed->Wait();
-#endif
-    if (fLink->fCrashed)
+    
+    if (sLink->fCrashed)
         IHandleCrash();
-    fHandled->Signal(); // Tell CrashCli we handled it
+    plCrashBase::gHandled->Signal(); // Tell CrashCli we handled it
 }

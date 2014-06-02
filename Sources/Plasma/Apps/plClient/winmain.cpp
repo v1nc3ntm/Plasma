@@ -126,10 +126,6 @@ plClient        *gClient;
 bool            gPendingActivate = false;
 bool            gPendingActivateFlag = false;
 
-#ifndef HS_DEBUGGING
-static plCrashCli s_crash;
-#endif
-
 static bool     s_loginDlgRunning = false;
 static hsSemaphore      s_statusEvent(0);   // Start non-signalled
 static UINT     s_WmTaskbarList = RegisterWindowMessage("TaskbarButtonCreated");
@@ -1165,22 +1161,6 @@ BOOL CALLBACK ExceptionDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARA
     return 0;
 }
 
-#ifndef HS_DEBUGGING
-LONG WINAPI plCustomUnhandledExceptionFilter( struct _EXCEPTION_POINTERS *ExceptionInfo )
-{
-    // Before we do __ANYTHING__, pass the exception to plCrashHandler
-    s_crash.ReportCrash(ExceptionInfo);
-
-    // Now, try to create a nice exception dialog after plCrashHandler is done.
-    s_crash.WaitForHandle();
-    HWND parentHwnd = (gClient == nil) ? GetActiveWindow() : gClient->GetWindowHandle();
-    DialogBoxParam(gHInst, MAKEINTRESOURCE(IDD_EXCEPTION), parentHwnd, ExceptionDialogProc, NULL);
-
-    // Trickle up the handlers
-    return EXCEPTION_EXECUTE_HANDLER;
-}
-#endif
-
 #include "pfConsoleCore/pfConsoleEngine.h"
 PF_CONSOLE_LINK_ALL()
 
@@ -1375,8 +1355,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
     // Install our unhandled exception filter for trapping all those nasty crashes in release build
 #ifndef HS_DEBUGGING
-    LPTOP_LEVEL_EXCEPTION_FILTER oldFilter;
-    oldFilter = SetUnhandledExceptionFilter( plCustomUnhandledExceptionFilter );
+    plCrashCli crash;
 #endif
 
     //
@@ -1466,11 +1445,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     hsAssert(hsgResMgr::ResMgr()->RefCnt()==1, "resMgr has too many refs, expect mem leaks");
     hsgResMgr::Shutdown();  // deletes fResMgr
     DeInitNetClientComm();
-
-    // Uninstall our unhandled exception filter, if we installed one
-#ifndef HS_DEBUGGING
-    SetUnhandledExceptionFilter( oldFilter );
-#endif
 
     // Exit WinMain and terminate the app....
 //    return msg.wParam;

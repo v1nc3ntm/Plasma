@@ -40,13 +40,20 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#ifndef _pnCrashCommon_h_
-#define _pnCrashCommon_h_
+#include "plCrash_Private.h"
 
-#include "HeadSpin.h"
-
-struct plCrashLink
+void plCrashBase::Close ()
 {
-};
+    delete gCrashed;
+    delete gHandled;
+}
 
-#endif // _pnCrashCommon_h_
+void plCrashBase::Create (const char* file)
+{
+    char sema[128];
+    snprintf(sema, arrsize(sema), "%s-%s", file, CRASH_NOTIFY_SUFFIX);
+    gCrashed = new hsSemaphore(0, sema);
+
+    snprintf(sema, arrsize(sema), "%s-%s", file, CRASH_HANDLE_SUFFIX);
+    gHandled = new hsSemaphore(0, sema);
+}

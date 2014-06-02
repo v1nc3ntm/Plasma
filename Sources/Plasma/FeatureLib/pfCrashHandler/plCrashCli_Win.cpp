@@ -40,54 +40,73 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
+#include "HeadSpin.h"
+#include "hsWindows.h"
+#include "plCrashBase.h"
+
 #include "plCrashCli.h"
 #include "plCrash_Private.h"
-
-#ifdef HS_BUILD_FOR_WIN32
 
 #ifdef _MSC_VER
 #include <crtdbg.h>
 
-static void IInvalidParameter(const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t)
-{
-    __debugbreak();
-}
+namespace {
+    void IInvalidParameter (const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t)
+    {
+        __debugbreak();
+    }
 
-static void IPureVirtualCall()
-{
-    __debugbreak();
+    void IPureVirtualCall ()
+    {
+        __debugbreak();
+    }
 }
 
 #endif // _MSC_VER
 
-plCrashCli::plCrashCli()
-    : fLink(nil), fLinkH(nil)
-{
-    char mapname[128];
-    char cmdline[128];
-    snprintf(mapname, arrsize(mapname), "Plasma20CrashHandler-%u", GetCurrentProcessId());
-    snprintf(cmdline, arrsize(cmdline), "%s %s", CRASH_HANDLER_EXE, mapname);
-    memset(&fCrashSrv, 0, sizeof(PROCESS_INFORMATION));
+struct plCrashCli::Private {
+    static PROCESS_INFORMATION sCrashSrv;
+    static HANDLE sLinkH;
+    static plCrashMemLink* sLink;
+    
+    static LONG WINAPI Handler (_EXCEPTION_POINTERS*);
+    
+    static LPTOP_LEVEL_EXCEPTION_FILTER sOldFilter;
+};
+PROCESS_INFORMATION plCrashCli::Private::sCrashSrv = { 0 };
+HANDLE plCrashCli::Private::sLinkH;
+plCrashMemLink* plCrashCli::Private::sLink = nullptr;
+LPTOP_LEVEL_EXCEPTION_FILTER plCrashCli::Private::sOldFilter;
 
+plCrashCli::plCrashCli ()
+{
+    hsAssert(!sLink, "only one instance of plCrashCli is authorized");
+    if (sLink)
+        return;
+    
+    char mapname[128];
+    snprintf(mapname, arrsize(mapname), "Plasma20CrashHandler-%u", GetCurrentProcessId());
     // Initialize the semas
-    IInit(mapname);
+    plCrashBase::Init(mapname);
 
     // Initialize the shared memory
-    fLinkH = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(plCrashMemLink), mapname);
-    hsAssert(fLinkH, "Failed to create plCrashHandler mapping");
-    if (!fLinkH)
+    sLinkH = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(plCrashMemLink), mapname);
+    hsAssert(sLinkH, "Failed to create plCrashHandler mapping");
+    if (!sLinkH)
         return;
-
+    
     // Map the shared memory
-    fLink = (plCrashMemLink*)MapViewOfFile(fLinkH, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(plCrashMemLink));
-    hsAssert(fLink, "Failed to map plCrashLinkedMem");
-    if (!fLink)
+    sLink = (plCrashMemLink*)MapViewOfFile(sLinkH, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(plCrashMemLink));
+    hsAssert(sLink, "Failed to map plCrashLinkedMem");
+    if (!sLink)
         return;
-    memset(fLink, 0, sizeof(plCrashMemLink));
-    fLink->fClientProcessID = GetCurrentProcessId();
+    memset(sLink, 0, sizeof(plCrashMemLink));
+    sLink->fClientProcessID = GetCurrentProcessId();
 
     // Start the plCrashHandler before a crash
-    STARTUPINFOA info; memset(&info, 0, sizeof(info));
+    char cmdline[128];
+    STARTUPINFOA info = { 0 };
+    snprintf(cmdline, arrsize(cmdline), "%s %s", CRASH_HANDLER_EXE, mapname);
     info.cb = sizeof(STARTUPINFOA);
     CreateProcessA(
                    CRASH_HANDLER_EXE, // plCrashHandler.exe
@@ -99,13 +118,13 @@ plCrashCli::plCrashCli()
                    NULL,
                    NULL,             // Use the directory of the current plClient
                    &info,
-                   &fCrashSrv        // Save the CrashSrv handles
+                   &sCrashSrv        // Save the CrashSrv handles
     );
 
     HANDLE curProc = GetCurrentProcess();
     DuplicateHandle(curProc,                  // Handle to the source process
                     curProc,                  // Handle that we want duplicated
-                    fCrashSrv.hProcess,       // Handle to target process
+                    sCrashSrv.hProcess,       // Handle to target process
                     &fLink->fClientProcess,   // Pointer to Handle to dupliicate to
                     0,                        // Ignored
                     FALSE,
@@ -116,47 +135,56 @@ plCrashCli::plCrashCli()
     // Sigh... The Visual C++ Runtime likes to throw up dialogs sometimes.
     // The user cares not about dialogs. We just want to get a minidump...
     // See: http://www.altdevblogaday.com/2012/07/20/more-adventures-in-failing-to-crash-properly/
-    _set_invalid_parameter_handler(IInvalidParameter);
-    _set_purecall_handler(IPureVirtualCall);
+    _set_invalid_parameter_handler(IInvalidParameter); // TODO
+    _set_purecall_handler(IPureVirtualCall); // TODO
 #endif // _MSC_VER
+    
+    // install handler
+    sOldFilter = SetUnhandledExceptionFilter(Private::Handler);
 }
 
-plCrashCli::~plCrashCli()
+plCrashCli::~plCrashCli ()
 {
-    fCrashed->Signal(); // forces the CrashSrv to exit, if it's still running
-    if (fCrashSrv.hProcess)
+    // restore old handler
+    SetUnhandledExceptionFilter(sOldFilter);
+    
+    plCrashBase::gCrashed->Signal(); // forces the CrashSrv to exit, if it's still running
+    if (sCrashSrv.hProcess)
     {
-        TerminateProcess(fCrashSrv.hProcess, 0);
-        CloseHandle(fCrashSrv.hProcess);
+        TerminateProcess(sCrashSrv.hProcess, 0);
+        CloseHandle(sCrashSrv.hProcess);
     }
-    if (fCrashSrv.hThread)
-        CloseHandle(fCrashSrv.hThread);
-    if (fLink)
-        UnmapViewOfFile((LPCVOID)fLink);
-    if (fLinkH)
-        CloseHandle(fLinkH);
+    if (sCrashSrv.hThread)
+        CloseHandle(sCrashSrv.hThread);
+    if (sLink)
+        UnmapViewOfFile((LPCVOID)sLink);
+    if (sLinkH)
+        CloseHandle(sLinkH);
+    
+    plCrashBase::Close();
 }
 
-void plCrashCli::ReportCrash(PEXCEPTION_POINTERS e)
+LONG WINAPI plCrashCli::Private::Handler (_EXCEPTION_POINTERS *ExceptionInfo)
 {
-    hsAssert(fLink, "plCrashMemLink is nil");
-    if (fLink)
+    // Before we do __ANYTHING__, pass the exception to plCrashHandler
+    hsAssert(sLink, "plCrashMemLink is nil");
+    if (sLink)
     {
-        fLink->fClientThreadID = GetCurrentThreadId();
-        fLink->fCrashed = true;
-        fLink->fExceptionPtrs  = e;
+        sLink->fClientThreadID = GetCurrentThreadId();
+        sLink->fCrashed = true;
+        sLink->fExceptionPtrs  = ExceptionInfo;
     }
+    
+    plCrashBase::gCrashed->Signal();
 
-    fCrashed->Signal();
-}
+    // Now, try to create a nice exception dialog after plCrashHandler is done.
+    if (sLink && sLink->fSrvReady) // Don't deadlock... Only wait if the CrashSrv is attached
+        plCrashBase::gHandled->Wait();
+    
+    // Now, try to create a nice exception dialog after plCrashHandler is done.
+    HWND parentHwnd = (gClient == nil) ? GetActiveWindow() : gClient->GetWindowHandle();
+    DialogBoxParam(gHInst, MAKEINTRESOURCE(IDD_EXCEPTION), parentHwnd, ExceptionDialogProc, NULL);
 
-#else
-#   error "Implement plCrashCli for this platform"
-#endif
-
-void plCrashCli::WaitForHandle()
-{
-    // Don't deadlock... Only wait if the CrashSrv is attached
-    if (fLink && fLink->fSrvReady)
-        fHandled->Wait();
+    // Trickle up the handlers
+    return EXCEPTION_EXECUTE_HANDLER;
 }

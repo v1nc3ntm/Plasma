@@ -43,26 +43,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfCrashSrv_h_
 #define _pfCrashSrv_h_
 
-#include "HeadSpin.h"
-#include "plCrashBase.h"
-
-struct plCrashMemLink;
-
-class plCrashSrv : public plCrashBase
+class plCrashSrv
 {
-    plCrashMemLink* fLink;
-
-#ifdef HS_BUILD_FOR_WIN32
-    HANDLE fLinkH;
-#endif
-
-    void IHandleCrash();
-
 public:
     plCrashSrv(const char* file);
     ~plCrashSrv();
 
     void HandleCrash();
+    
+    struct Private;
 };
 
 #endif // _pfCrashSrv_h_

@@ -43,29 +43,15 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef _pfCrashCli_h_
 #define _pfCrashCli_h_
 
-#include "HeadSpin.h"
-#include "hsWindows.h"
-#include "plCrashBase.h"
-
 struct plCrashMemLink;
 
-class plCrashCli : public plCrashBase
-{
-    plCrashMemLink* fLink;
-
-#ifdef HS_BUILD_FOR_WIN32
-    PROCESS_INFORMATION fCrashSrv;
-    HANDLE fLinkH;
-#endif
-
+/** default handler for exceptions. */
+class plCrashCli {
 public:
-    plCrashCli();
-    ~plCrashCli();
-
-#ifdef HS_BUILD_FOR_WIN32
-    void ReportCrash(PEXCEPTION_POINTERS);
-#endif
-    void WaitForHandle();
+    plCrashCli (); ///< initialise and start plCrashHandler; And install a custom exception handler.
+    ~plCrashCli (); ///< close plCrashHandler and restore previous exception handler.
+    
+    struct Private;
 };
 
 #endif // _pfCrashCli_h_

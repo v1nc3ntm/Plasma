@@ -40,21 +40,37 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 
-#include "plCrashBase.h"
-#include "plCrash_Private.h"
+#ifndef _pfCrash_Private_h_
+#define _pfCrash_Private_h_
 
-plCrashBase::~plCrashBase()
+#include "HeadSpin.h"
+#include "hsWindows.h"
+
+#define CRASH_NOTIFY_SUFFIX "CrashNotify"
+#define CRASH_HANDLE_SUFFIX "CrashHandled"
+
+#ifdef PLASMA_EXTERNAL_RELEASE
+#    define CRASH_HANDLER_EXE "UruCrashHandler.exe"
+#else
+#    define CRASH_HANDLER_EXE "plCrashHandler.exe"
+#endif // PLASMA_EXTERNAL_RELEASE
+
+struct plCrashMemLink
 {
-    delete fCrashed;
-    delete fHandled;
-}
+    bool fCrashed;
+    bool fSrvReady;
+    HANDLE   fClientProcess;
+    uint32_t fClientProcessID;
+    uint32_t fClientThreadID;
+    PEXCEPTION_POINTERS fExceptionPtrs;
+};
 
-void plCrashBase::IInit(const char* file)
-{
-    char sema[128];
-    snprintf(sema, arrsize(sema), "%s-%s", file, CRASH_NOTIFY_SUFFIX);
-    fCrashed = new hsSemaphore(0, sema);
+namespace plCrashBase {
+    hsSemaphore* gCrashed;
+    hsSemaphore* gHandled;
 
-    snprintf(sema, arrsize(sema), "%s-%s", file, CRASH_HANDLE_SUFFIX);
-    fHandled = new hsSemaphore(0, sema);
-}
+    void Init(const char* file);
+    void Close();
+};
+
+#endif // _pfCrash_Private_h_
