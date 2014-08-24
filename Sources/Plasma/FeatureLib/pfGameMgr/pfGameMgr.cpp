@@ -131,7 +131,7 @@ struct IGameMgr {
 
 static HASHTABLEDECL(TransState, THashKeyVal<unsigned>, link)   s_trans;
 static HASHTABLEDECL(IGameCli, THashKeyVal<unsigned>, link)     s_games;
-static std::map<plUUID, Factory*>       s_factories;
+static std::map<plUUID, Factory*> *      s_factories = nullptr;
 
 static std::atomic<unsigned>    s_transId;
 static ARRAYOBJ(plKey)          s_receivers;
@@ -146,16 +146,22 @@ static ARRAYOBJ(plKey)          s_receivers;
 //============================================================================
 static void ShutdownFactories()
 {
+    if (!s_factories)
+        return;
+    
     std::map<plUUID, Factory*>::iterator it;
-    for (it = s_factories.begin(); it != s_factories.end(); ++it) {
+    for (it = s_factories->begin(); it != s_factories->end(); ++it) {
         Factory* factory = it->second;
         delete factory;
     }
-    s_factories.clear();
+    
+    delete s_factories;
+    s_factories = nullptr;
 }
 
 //============================================================================
 AUTO_INIT_FUNC (SetGameMgrMsgHandler) {
+    printf("SetGameMgrMsgHandler\n");
 
     NetCliGameSetRecvGameMgrMsgHandler(IGameMgr::StaticRecv);
     atexit(ShutdownFactories);
@@ -176,8 +182,11 @@ static inline unsigned INextTransId () {
 //============================================================================
 pfGameCli* IGameMgr::CreateGameCli(const plUUID& gameTypeId, unsigned gameId, plKey receiver)
 {
+    if (!s_factories)
+        return nullptr;
+    
     std::map<plUUID, Factory*>::iterator it;
-    if ((it = s_factories.find(gameTypeId)) != s_factories.end()) {
+    if ((it = s_factories->find(gameTypeId)) != s_factories->end()) {
         pfGameCli* gameCli = it->second->reg.create(gameId, receiver);
         gameCli->internal->factory = it->second;
         return gameCli;
@@ -340,8 +349,11 @@ pfGameCli * pfGameMgr::GetGameCli (unsigned gameId) const {
 //============================================================================
 const wchar_t* pfGameMgr::GetGameNameByTypeId(const plUUID& gameTypeId) const
 {
+    if (!s_factories)
+        return nullptr;
+    
     std::map<plUUID, Factory*>::iterator it;
-    if ((it = s_factories.find(gameTypeId)) != s_factories.end()) {
+    if ((it = s_factories->find(gameTypeId)) != s_factories->end()) {
         return it->second->reg.name;
     }
     return nil;
@@ -608,7 +620,10 @@ void IGameCli::RecvOwnerChange (const Srv2Cli_Game_OwnerChange & msg, void * par
 //============================================================================
 Factory::Factory(const GameTypeReg& reg) : reg(reg)
 {
-    s_factories[reg.typeId] = this;
+    if (!s_factories)
+        s_factories = new std::map<plUUID, Factory*>;
+    
+    (*s_factories)[reg.typeId] = this;
 }
 
 
