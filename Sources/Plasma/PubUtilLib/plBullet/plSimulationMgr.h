@@ -60,5 +60,5 @@ public:
     static void Resume  ();                ///< resume the simulation
     static bool IsSuspended ();            ///< @return true if simulation is suspended
     
-    class Private;
+    struct Private;
 };

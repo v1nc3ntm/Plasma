@@ -46,17 +46,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 using namespace std;
 
-class plSimulationMgr::Private : plSimulationMgr
+struct plSimulationMgr::Private : plSimulationMgr
 {
 public:
     static Private * instance;
     
     bool    suspend;
     
-    btDefaultCollisionConfiguration     collisionConf
+    btDefaultCollisionConfiguration     collisionConf;
     btCollisionDispatcher               dispatcher;
-    btBroadphaseInterface               pairCache;
-    btDbvtBroadphase                    constraintSolver;
+    btHashedOverlappingPairCache        pairCache;
+    btDbvtBroadphase                    broadphase;
     btSequentialImpulseConstraintSolver solver;
     
     map<plKey, btDiscreteDynamicsWorld*> scenes;
@@ -90,11 +90,9 @@ void plSimulationMgr::Shutdown ()
 }
 
 plSimulationMgr::Private::Private ()
-  : suspend(true)
-    collisionConf(),
+  : suspend(true),
     dispatcher(&collisionConf),
-    pairCache(),
-    constraintSolver()
+    broadphase(&pairCache)
 {
 }
 
@@ -105,7 +103,12 @@ btDiscreteDynamicsWorld & plSimulationMgr::GetScene (plKey id)
     
     if (!scene)
     {
-        scene = new btDiscreteDynamicsWorld(&dispatcher, &pairCache, &constraintSolver, &collisionConf);
+        scene = new btDiscreteDynamicsWorld(
+            &Private::instance->dispatcher,
+            &Private::instance->broadphase,
+            &Private::instance->solver,
+            &Private::instance->collisionConf
+        );
         scene->setGravity(btVector3(0, 0, -32.174049f));
     }
     
@@ -115,9 +118,9 @@ btDiscreteDynamicsWorld & plSimulationMgr::GetScene (plKey id)
 void plSimulationMgr::ReleaseScene (plKey id)
 {
     auto it = Private::instance->scenes.find(id);
-    hsAssert(it != Private::instance->scenes.end(), "Release unknow scene")
+    hsAssert(it != Private::instance->scenes.end(), "Release unknow scene");
     
-    delete *it.second;
+    delete it->second;
     Private::instance->scenes.erase(it);
 }
 
@@ -128,7 +131,7 @@ void plSimulationMgr::Advance (float deltaSecs)
     
     for (auto scene: Private::instance->scenes)
     {
-        scene->stepSimulation(deltaSecs); //, 60/minFps);
+        scene.second->stepSimulation(deltaSecs); //, 60/minFps);
     }
 }
 void plSimulationMgr::Suspend     () {        Private::instance->suspend = true; }

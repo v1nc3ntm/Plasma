@@ -53,38 +53,43 @@ class plPhysicalSndGroup;
 class plDrawableSpans;
 class hsGMaterial;
 
-// Primary interface object for physics functionality. A physical corresponds to
-// a single rigid body in a simulation. (Note that there can be multiple
-// simulations.) The plPhysical is reached through the simulation interface on a
-// plSceneObject
-//
-// Any function that ends with 'Sim' gets or sets a simulation space value.  If
-// the physical is in the main world, this will be the same as a global value,
-// but if it's in a subworld, it will be relative to that.
+/**
+ * Primary interface object for physics functionality.
+ * 
+ * A physical corresponds to a single rigid body in a simulation.
+ * (Note that there can be multiple simulations.)
+ * 
+ * The plPhysical is reached through the simulation interface on a \ref plSceneObject
+ *
+ * Any function that ends with 'Sim' gets or sets a simulation space value.
+ * If the physical is in the main world, this will be the same as a global value,
+ * but if it's in a subworld, it will be relative to that.
+ */
 class plPhysical : public plSynchedObject
 {
 public:
     CLASSNAME_REGISTER(plPhysical);
     GETINTERFACE_ANY(plPhysical, plSynchedObject);
 
-    virtual plPhysical& SetProperty(int prop, bool b) = 0;
-    virtual bool        GetProperty(int prop) const = 0;
+    virtual plPhysical& SetProperty(int prop, bool b) = 0; ///< set a property \see \ref plSimulationProperties
+    virtual bool        GetProperty(int prop) const   = 0; ///< get a property \see \ref plSimulationProperties
 
-    virtual void SetObjectKey(plKey oKey) = 0;
-    virtual plKey GetObjectKey() const = 0;
+    virtual void  SetObjectKey(plKey oKey) = 0; ///< set the object identifier
+    virtual plKey GetObjectKey() const = 0;     ///< get the object identifier
 
     // These two should only be called by the SceneNode
-    virtual void SetSceneNode(plKey node) = 0;
-    virtual plKey GetSceneNode() const = 0;
+    virtual void  SetSceneNode(plKey node) = 0; ///< set the scene identifier where the object is
+    virtual plKey GetSceneNode() const = 0;     ///< get the scene identifier where the object is
 
-    virtual bool GetLinearVelocitySim(hsVector3& vel) const = 0;
-    virtual void SetLinearVelocitySim(const hsVector3& vel) = 0;
-    virtual void ClearLinearVelocity() = 0;
+    virtual bool GetLinearVelocitySim(hsVector3& vel) const = 0; ///< get the current linear velocity
+    virtual void SetLinearVelocitySim(const hsVector3& vel) = 0; ///< set the current linear velocity
+    virtual void ClearLinearVelocity() = 0;                      ///< clear the current linear velocity
 
-    virtual bool GetAngularVelocitySim(hsVector3& vel) const = 0;
-    virtual void SetAngularVelocitySim(const hsVector3& vel) = 0;
+    virtual bool GetAngularVelocitySim(hsVector3& vel) const = 0; ///< get the current angular velocity
+    virtual void SetAngularVelocitySim(const hsVector3& vel) = 0; ///< set the current angular velocity
 
-    virtual void SetHitForce(const hsVector3& force, const hsPoint3& pos)=0;
+    virtual void SetHitForce(const hsVector3& force, const hsPoint3& pos)=0; ///< add a force on the object \param force force to apply \param pos position where the force is applied \todo pos is in local or world coordinates?
+    
     /** Standard plasma transform interface, in global coordinates by convention.
     If you send in the same matrix that the physical last sent out in its correction message,
     it will be ignored as an "echo" -- UNLESS you set force to true, in which case the transform
@@ -126,6 +131,12 @@ public:
     // going to be for now.
     virtual void ExcludeRegionHack(bool cleared) = 0;
 
+    /**
+     * create a object to draw collisions debuging informations.
+     * \param mat material used for collision shapes
+     * \param idx ?
+     * \param addTo other drawables to append add the end of the chained list.
+     */
     virtual plDrawableSpans* CreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo) = 0;
 };
 

@@ -40,84 +40,84 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "plBTPhysical.h"
+#include "plSimulationMgr.h"
+
+#include "hsBitVector.h"
+#include "hsMatrix44.h"
+#include "pnMessage/plCorrectionMsg.h"
+#include "plPhysical/plPhysicalSndGroup.h"
+#include "hsQuat.h"
+#include "hsResMgr.h"
+#include "pnSceneObject/plSimulationInterface.h"
+
+
+#include <btBulletCollisionCommon.h>
+#include <btBulletDynamicsCommon.h>
+//#include <BulletDynamics/Dynamics/btRigidBody.h>
+#include <BulletCollision/CollisionShapes/btTriangleShape.h>
 
 class plBLPhysical::Private
 {
 public:
-    static constexpr short collisionMask  (plSimDefs::Group group);
-    static constexpr short collisionGroup (plSimDefs::Group group);
-    static constexpr btCollisionObject * collisionObject (plSimDefs::Group group);
+    static inline short collisionMask  (plSimDefs::Group group);
+    static inline short collisionGroup (plSimDefs::Group group);
     
     plSimDefs::Bounds   bounds;
     plSimDefs::Group    group;
     
     plSimDefs::plLOSDB  losdb;
-    uint32_t            reportsOn
+    uint32_t            reportsOn;
     
     plKey               objectKey, sceneKey, worldKey;
-    plPhysicalSndGroup *soundGrp
+    plPhysicalSndGroup *soundGrp;
     
     hsBitVector         props;
     
     btRigidBody *       obj;
-}
+    
+    enum MsgTypes {
+        kPhysRefSndGroup
+    };
+};
 
-constexpr short plBLPhysical::Private::collisionGroup (plSimDefs::Group group)
+inline short plBLPhysical::Private::collisionGroup (plSimDefs::Group group)
 {
     switch (group)
     {
-    case kGroupStatic:          return 0x0001;
-    case kGroupAvatarBlocker:   return 0x0002;
-    case kGroupDynamicBlocker:  return 0x0004;
-    case kGroupAvatar:          return 0x0008;
-    case kGroupDynamic:         return 0x0010;
-    case kGroupDetector:        return 0x0020;
-    case kGroupLOSOnly:         return 0x0040;
-    case kGroupExcludeRegion:   return 0x0080;
-    case kGroupAvatarKinematic: return 0x0100;
+    case plSimDefs::kGroupStatic:          return 0x0001;
+    case plSimDefs::kGroupAvatarBlocker:   return 0x0002;
+    case plSimDefs::kGroupDynamicBlocker:  return 0x0004;
+    case plSimDefs::kGroupAvatar:          return 0x0008;
+    case plSimDefs::kGroupDynamic:         return 0x0010;
+    case plSimDefs::kGroupDetector:        return 0x0020;
+    case plSimDefs::kGroupLOSOnly:         return 0x0040;
+    case plSimDefs::kGroupExcludeRegion:   return 0x0080;
+    case plSimDefs::kGroupAvatarKinematic: return 0x0100;
     default:
         hsAssert(false, "collision group not implemented in plBLPhysical");
         return 0x0000;
     }
 }
 
-constexpr short plBLPhysical::Private::collisionMask (plSimDefs::Group group)
+inline short plBLPhysical::Private::collisionMask (plSimDefs::Group group)
 {
     switch (group)
     {
-    case kGroupStatic:          return 0x0018; //! (fix) Avatar + Dynamic
-    case kGroupAvatarBlocker:   return 0x0008; //! (fix) Avatar
-    case kGroupDynamicBlocker:  return 0x0010; //! (fix) Dynamic
-    case kGroupAvatar:          return 0x00BB; // (fix) Static + AvatarBlocker + Avatar + Dynamic + Detector + ExcludeRegion
-    case kGroupDynamic:         return 0x01BD; // (dyn) Static + DynamicBlocker + Avatar + Dynamic + Kinematic
-    case kGroupDetector:        return 0x0118; // (fix) Avatar + Dynamic + Kinematic
-    case kGroupLOSOnly:         return 0x0000; // (fix) -
-    case kGroupExcludeRegion:   return 0x0008; // (fix) Avatar (if not in seek mode)
-    case kGroupAvatarKinematic: return 0x0030; // (fix) Dynamic + Detector
+    case plSimDefs::kGroupStatic:          return 0x0018; //! (fix) Avatar + Dynamic
+    case plSimDefs::kGroupAvatarBlocker:   return 0x0008; //! (fix) Avatar
+    case plSimDefs::kGroupDynamicBlocker:  return 0x0010; //! (fix) Dynamic
+    case plSimDefs::kGroupAvatar:          return 0x00BB; // (fix) Static + AvatarBlocker + Avatar + Dynamic + Detector + ExcludeRegion
+    case plSimDefs::kGroupDynamic:         return 0x01BD; // (dyn) Static + DynamicBlocker + Avatar + Dynamic + Kinematic
+    case plSimDefs::kGroupDetector:        return 0x0118; // (fix) Avatar + Dynamic + Kinematic
+    case plSimDefs::kGroupLOSOnly:         return 0x0000; // (fix) -
+    case plSimDefs::kGroupExcludeRegion:   return 0x0008; // (fix) Avatar (if not in seek mode)
+    case plSimDefs::kGroupAvatarKinematic: return 0x0030; // (fix) Dynamic + Detector
     default:
         hsAssert(false, "collision group not implemented in plBLPhysical");
         return 0x0000;
     }
 }
 
-
-constexpr btCollisionObject * plBLPhysical::Private::collisionObject (plSimDefs::Group group)
-{
-    switch (group)
-    {
-    case kGroupStatic:
-    case kGroupAvatarBlocker:
-    case kGroupDynamicBlocker:
-    case kGroupAvatar:
-    case kGroupDynamic:
-    case kGroupExcludeRegion:
-    case kGroupAvatarKinematic:
-        return new btRigidBody();
-    case kGroupDetector:
-    case kGroupLOSOnly:
-        return new btGostObject();
-    }
-}
 
 plBLPhysical::plBLPhysical ()
  : physic(new Private)
@@ -128,9 +128,9 @@ plBLPhysical::~plBLPhysical ()
     delete physic;
 }
 
-void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
+void plBLPhysical::Read  (hsStream* stream, hsResMgr* mgr)
 {
-    btRigidBodyConstructionInfo info;
+    btRigidBody::btRigidBodyConstructionInfo info(0, nullptr, nullptr);
     
     plPhysical::Read(stream, mgr);
     
@@ -156,7 +156,7 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
     physic->worldKey  = mgr->ReadKey(stream);
     
     // sound group
-    physic->soundGrp  = plPhysicalSndGroup::ConvertNoRef(mgr->ReadKey(stream));
+    mgr->ReadKeyNotifyMe(stream, new plGenRefMsg(GetKey(), plRefMsg::kOnCreate, 0, Private::kPhysRefSndGroup), plRefFlags::kActiveRef);
     
     // Object position and rotation in world
     {
@@ -179,8 +179,11 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
     // properties
     physic->props.Read(stream);
     
+    hsPoint3 offset;
+    uint32_t count; 
+    
     // Object shape
-    switch (bounds)
+    switch (physic->bounds)
     {
     case plSimDefs::kBoxBounds:
         info.m_collisionShape = new btBoxShape(
@@ -189,16 +192,16 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
                 stream->ReadLEScalar(),
                 stream->ReadLEScalar()
             )
-        )
-        hsPoint3 offset; offset.Read(stream); // offset?
+        );
+        offset.Read(stream); // offset?
         break;
     case plSimDefs::kSphereBounds:
         info.m_collisionShape = new btSphereShape(stream->ReadLEScalar());
-        hsPoint3 offset; offset.Read(stream); // offset?
+        offset.Read(stream); // offset?
         break;
     case plSimDefs::kHullBounds:
         btConvexHullShape * hull; hull = new btConvexHullShape;
-        uint32_t count; count = stream->ReadLE32();
+        count = stream->ReadLE32();
         
         for (int i = 0; i < count; i++)
             hull->addPoint(
@@ -213,10 +216,10 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
         break;
     case plSimDefs::kProxyBounds:
     case plSimDefs::kExplicitBounds:
-        btCompoundShape * shape = new btCompoundShape();
+        btCompoundShape * shape; shape = new btCompoundShape();
         
         uint32_t ptCount; ptCount = stream->ReadLE32();
-        btVector3 * pts = new btVector3[ptCount];
+        btVector3 * pts; pts = new btVector3[ptCount];
         for (int i = 0; i < ptCount; i++)
             pts[i] = btVector3(
                 stream->ReadLEScalar(),
@@ -224,7 +227,7 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
                 stream->ReadLEScalar()
             );
         
-        uint32_t count; count = stream->ReadLE32();
+        count = stream->ReadLE32();
         for (int i = 0; i < count; i++)
         {
             uint16_t a, b, c;
@@ -233,7 +236,7 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
             c = stream->ReadLE16(); hsAssert(c < ptCount, "invalid face vertex index");
             
             shape->addChildShape(
-                btVector(0, 0, 0),
+                btTransform(),
                 new btTriangleShape(pts[a], pts[b], pts[c])
             );
         }
@@ -243,23 +246,23 @@ void plBLPhysical::Read  (hsStream* s, hsResMgr* mgr)
         
         break;
     default:
-        assert(false, "bounds type not supported";
+        hsAssert(false, "bounds type not supported");
     }
     
     physic->obj = new btRigidBody(info);
-    plSimulationMgr::getScene(worldKey).addRigidBody(
+    plSimulationMgr::GetScene(physic->worldKey).addRigidBody(
         physic->obj,
         Private::collisionGroup(physic->group),
         Private::collisionMask(physic->group)
     );
     
     if (physic->props.IsBitSet(plSimulationInterface::kStartInactive))
-        physic->obj->forceActivationState(btCollisionObject::DISABLE_SIMULATION);
+        physic->obj->forceActivationState(DISABLE_SIMULATION);
     
     // TODO: ...
     
 }
-void plBLPhysical::Write (hsStream* s, hsResMgr* mgr)
+void plBLPhysical::Write (hsStream* stream, hsResMgr* mgr)
 {
     plPhysical::Write(stream, mgr);
     
@@ -276,7 +279,7 @@ void plBLPhysical::Write (hsStream* s, hsResMgr* mgr)
     mgr->WriteKey(stream, physic->worldKey);
     mgr->WriteKey(stream, physic->soundGrp);
     
-    {   const btTransform & t = physic->getWorldTransform();
+    {   const btTransform & t = physic->obj->getWorldTransform();
         {   const btVector3 & pos = t.getOrigin();
             stream->WriteLEScalar(pos.x());
             stream->WriteLEScalar(pos.y());
@@ -310,18 +313,18 @@ void plBLPhysical::Write (hsStream* s, hsResMgr* mgr)
         //TODO
         break;
     default:
-        assert(false, "bounds type not supported";
+        hsAssert(false, "bounds type not supported");
     }
 }
 
 
 
-float plBLPhysical::GetMass ()  const { return 1.f / physic->obj->getInvMass(); }
+float plBLPhysical::GetMass ()        { return 1.f / physic->obj->getInvMass(); }
 int   plBLPhysical::GetGroup () const { return physic->group; }
 
-void     plBLPhysical::   AddLOSDB  (uint16_t flag) { hsSetBits(  physic->losdb, flag); }
-void     plBLPhysical::RemoveLOSDB  (uint16_t flag) { hsClearBits(physic->losdb, flag); } 
-bool     plBLPhysical::  IsInLOSDB  (uint16_t flag) { hsCheckBits(physic->losdb, flag); }
+void     plBLPhysical::   AddLOSDB  (uint16_t flag) { hsSetBits(  (int &)physic->losdb, flag); }
+void     plBLPhysical::RemoveLOSDB  (uint16_t flag) { hsClearBits((int &)physic->losdb, flag); } 
+bool     plBLPhysical::  IsInLOSDB  (uint16_t flag) { hsCheckBits(       physic->losdb, flag); }
 uint16_t plBLPhysical::GetAllLOSDBs () { return physic->losdb; }
 
 
@@ -330,9 +333,9 @@ void  plBLPhysical::SetObjectKey (plKey key) { physic->objectKey = key; }
 
 plKey plBLPhysical::GetSceneNode () const { return physic->sceneKey; }
 void  plBLPhysical::SetSceneNode (plKey node) {
-    plSimulationMgr::getScene (physic->sceneKey).removeRigidBody(physic->obj);
+    plSimulationMgr::GetScene (physic->sceneKey).removeRigidBody(physic->obj);
     physic->sceneKey = node;
-    plSimulationMgr::getScene(node).addRigidBody(
+    plSimulationMgr::GetScene(node).addRigidBody(
         physic->obj,
         Private::collisionGroup(physic->group),
         Private::collisionMask(physic->group)
@@ -351,7 +354,7 @@ void plBLPhysical::GetPositionSim (hsPoint3 & pos) const
     pos.fZ = o.z();
 }
 
-void plBLPhysical::GetTransform (hsMatrix44& l2w, hsMatrix44& w2l) const
+void plBLPhysical::GetTransform (hsMatrix44& l2w, hsMatrix44& w2l)
 {
     const btTransform & t = physic->obj->getWorldTransform();
     const btMatrix3x3 & r = t.getBasis();
@@ -386,14 +389,14 @@ void plBLPhysical::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l, b
     btMatrix3x3 & r = t.getBasis();
     btVector3   & o = t.getOrigin();
     
-    assert(w2l.fMap[0][3] == 0, "invalid transform matrix");
-    assert(w2l.fMap[1][3] == 0, "invalid transform matrix");
-    assert(w2l.fMap[2][3] == 0, "invalid transform matrix");
-    assert(w2l.fMap[3][3] == 1, "invalid transform matrix");
+    hsAssert(w2l.fMap[0][3] == 0, "invalid transform matrix");
+    hsAssert(w2l.fMap[1][3] == 0, "invalid transform matrix");
+    hsAssert(w2l.fMap[2][3] == 0, "invalid transform matrix");
+    hsAssert(w2l.fMap[3][3] == 1, "invalid transform matrix");
     
-    assert(w2l.fMap[0][0] + w2l.fMap[1][0] + w2l.fMap[2][0] == 1.f, "scaling transform not supported by bullet")
-    assert(w2l.fMap[0][1] + w2l.fMap[1][1] + w2l.fMap[2][1] == 1.f, "scaling transform not supported by bullet")
-    assert(w2l.fMap[0][2] + w2l.fMap[1][2] + w2l.fMap[2][2] == 1.f, "scaling transform not supported by bullet")
+    hsAssert(w2l.fMap[0][0] + w2l.fMap[1][0] + w2l.fMap[2][0] == 1.f, "scaling transform not supported by bullet");
+    hsAssert(w2l.fMap[0][1] + w2l.fMap[1][1] + w2l.fMap[2][1] == 1.f, "scaling transform not supported by bullet");
+    hsAssert(w2l.fMap[0][2] + w2l.fMap[1][2] + w2l.fMap[2][2] == 1.f, "scaling transform not supported by bullet");
     
     r[0].setX(w2l.fMap[0][0]);
     r[1].setX(w2l.fMap[1][0]);
@@ -422,7 +425,7 @@ plPhysical & plBLPhysical::SetProperty (int prop, bool b)
     case plSimulationInterface::kDisable:
         // TODO: test if it do what I want...
         physic->obj->forceActivationState(
-            b ? btCollisionObject::DISABLE_SIMULATION : btCollisionObject::ACTIVE_TAG
+            b ? DISABLE_SIMULATION : ACTIVE_TAG
         );
         break;
     case plSimulationInterface::kPinned:
@@ -447,14 +450,17 @@ plPhysical & plBLPhysical::SetProperty (int prop, bool b)
         hsAssert(false, "unknow property");
     }
     
-    physic->props.SetBit(prop, status);
+    physic->props.SetBit(prop, b);
 }
 
 
 bool plBLPhysical::GetLinearVelocitySim (hsVector3 & vel) const
 {
     const btVector3 & vec = physic->obj->getLinearVelocity();
-    return hsVector3(vec.x(), vec.y(), vec.z());
+    vel.fX = vec.x();
+    vel.fY = vec.y();
+    vel.fZ = vec.z();
+    return true;
 }
 void plBLPhysical::SetLinearVelocitySim (const hsVector3 & vec)
 {
@@ -463,9 +469,12 @@ void plBLPhysical::SetLinearVelocitySim (const hsVector3 & vec)
 bool plBLPhysical::GetAngularVelocitySim (hsVector3 & vel) const
 {
     const btVector3 & vec = physic->obj->getAngularVelocity();
-    return hsVector3(vec.x(), vec.y(), vec.z());
+    vel.fX = vec.x();
+    vel.fY = vec.y();
+    vel.fZ = vec.z();
+    return true;
 }
-void plBLPhysical::SetAngularVelocitySim (const hsVector3 & vec);
+void plBLPhysical::SetAngularVelocitySim (const hsVector3 & vec)
 {
     physic->obj->setAngularVelocity(btVector3(vec.fX, vec.fY, vec.fZ));
 }
@@ -509,7 +518,7 @@ void plBLPhysical::SetSyncState (hsPoint3 * pos, hsQuat * rot, hsVector3 * linV,
     if (angV) SetAngularVelocitySim(*angV);
 }
 
-void plBLPhysical::SetHitForce (const hsVector3& force, const hsPoint3& pos);
+void plBLPhysical::SetHitForce (const hsVector3& force, const hsPoint3& pos)
 {
     physic->obj->applyForce( // FIXME: Force or Impulse?
         btVector3(force.fX, force.fY, force.fZ),
@@ -530,22 +539,48 @@ void plBLPhysical::SendNewLocation (bool synchTransform, bool forceUpdate)
         hsMatrix44 l2w, w2l;
         
         GetTransform(l2w, w2l);
-        new plCorrectionMsg(physic->objectKey, l2w, w2l, synchTransform)->Send();
+        (new plCorrectionMsg(physic->objectKey, l2w, w2l, synchTransform))->Send();
     }
 }
 
 void plBLPhysical::ExcludeRegionHack (bool cleared)
 {
+//    physic->obj->set
     hsAssert(false, "TODO");
 }
 
 plDrawableSpans * plBLPhysical::CreateProxy (hsGMaterial* mat, hsTArray<uint32_t> & idx, plDrawableSpans * addTo)
 {
-    hsAssert(false, "TODO");
+    
+    hsAssert(false, "TODO?");
     return addTo;
 }
 
 
 bool plBLPhysical::DoReportOn (plSimDefs::Group group) const { return hsCheckBits(physic->reportsOn, 1<<group); }
+
+bool plBLPhysical::HandleRefMsg (plGenRefMsg * refMsg) {
+//    plKey refKey = refMsg->GetRef()->GetKey();
+//    plString refKeyName = refKey ? refKey->GetName() : "MISSING";
+    
+    switch (refMsg->fType) {
+    case Private::kPhysRefSndGroup:
+        switch (refMsg->GetContext())
+        {
+        case plRefMsg::kOnCreate:
+//        case plRefMsg::kOnRequest:
+            physic->soundGrp = plPhysicalSndGroup::ConvertNoRef(refMsg->GetRef());
+            break;
+
+//        case plRefMsg::kOnDestroy:
+//            fSndGroup = nullptr;
+//            break;
+        default:
+            hsAssert(false, "unhandled refMsg context");
+        }
+    default:
+        hsAssert(false, "unhandled refMsg type");
+    }
+}
 
 

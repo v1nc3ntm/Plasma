@@ -42,7 +42,10 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #ifndef plBLPhysical_h_inc
 #define plBLPhysical_h_inc
 
-#include "plPhysical.h" 
+#include "plPhysical.h"
+#include "plPhysical/plSimDefs.h"
+
+class plGenRefMsg;
 
 /**
  * Bullet Physic implementation of plPhysical
@@ -82,8 +85,8 @@ class plBLPhysical : public plPhysical
     virtual plPhysicalSndGroup * GetSoundGroup () const;
     
     virtual void GetPositionSim (hsPoint3 & pos) const;
-    virtual void GetTransform (      hsMatrix44& l2w,       hsMatrix44& w2l); // FIXME: const?
-    virtual void SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l, bool force=false);
+    virtual void GetTransform (      hsMatrix44 & l2w,       hsMatrix44 & w2l); // FIXME: const?
+    virtual void SetTransform (const hsMatrix44 & l2w, const hsMatrix44 & w2l, bool force=false);
     
     virtual bool         GetProperty (int prop) const;
     virtual plPhysical & SetProperty (int prop, bool b);
@@ -118,6 +121,8 @@ class plBLPhysical : public plPhysical
     
     
     class Private; Private * physic;
+protected:
+    bool HandleRefMsg (plGenRefMsg * refM);
 };
 
 #endif
