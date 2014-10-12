@@ -61,7 +61,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plInputCore/plInputManager.h"
 #include "plInputCore/plInputInterfaceMgr.h"
 #include "plInputCore/plInputDevice.h"
-#include "plPhysX/plSimulationMgr.h"
+#include "plPhysical/plSimulationMgr.h"
 #include "plNetClient/plNetClientMgr.h"
 #include "plAvatar/plAvatarMgr.h"
 #include "plScene/plRelevanceMgr.h"
@@ -327,8 +327,7 @@ bool plClient::Shutdown()
     delete fPipeline;
     fPipeline = nil;
 
-    if (plSimulationMgr::GetInstance())
-        plSimulationMgr::Shutdown();
+    plSimulationMgr::Shutdown();
     plAvatarMgr::ShutDown();
     plRelevanceMgr::DeInit();
 
@@ -1670,7 +1669,7 @@ bool plClient::IUpdate()
         fAnimDebugList->ShowReport();
     
     plProfile_BeginTiming(Simulation);
-    plSimulationMgr::GetInstance()->Advance(delSecs);
+    plSimulationMgr::Advance(delSecs);
     plProfile_EndTiming(Simulation);
             
     // At this point, we just register for a plDelayedTransformMsg when dirtied.
@@ -2270,7 +2269,7 @@ void plClient::ICompleteInit () {
     // Reset clear color on the pipeline
 //  fPipeline->ClearRenderTarget( &fClearColor, &depth );
 
-    plSimulationMgr::GetInstance()->Resume();               // start the sim at the last possible minute
+    plSimulationMgr::Resume();               // start the sim at the last possible minute
 
     fFlags.SetBit( kFlagIniting, false );
     hsStatusMessage("Client init complete.");

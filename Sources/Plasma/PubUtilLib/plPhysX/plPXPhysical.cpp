@@ -57,7 +57,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsQuat.h"
 #include "hsSTLStream.h"
 
-#include "plSimulationMgr.h"
+#include "plSimulationMgrImpl.h"
 #include "plPhysical/plPhysicalSDLModifier.h"
 #include "plPhysical/plPhysicalSndGroup.h"
 #include "plPhysical/plPhysicalProxy.h"
@@ -154,7 +154,7 @@ plPXPhysical::plPXPhysical()
 
 plPXPhysical::~plPXPhysical()
 {
-    SpamMsg(plSimulationMgr::Log("Destroying physical %s", GetKeyName().c_str()));
+    SpamMsg(plSimulationMgrImpl::Log("Destroying physical %s", GetKeyName().c_str()));
 
     if (fActor)
     {
@@ -179,18 +179,18 @@ plPXPhysical::~plPXPhysical()
         }
 
         // Release the actor
-        NxScene* scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+        NxScene* scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
         scene->releaseActor(*fActor);
         fActor = nil;
 
         // Now that the actor is freed, release the mesh
         if (convexMesh)
-            plSimulationMgr::GetInstance()->GetSDK()->releaseConvexMesh(*convexMesh);
+            plSimulationMgrImpl::GetInstance()->GetSDK()->releaseConvexMesh(*convexMesh);
         if (triMesh)
-            plSimulationMgr::GetInstance()->GetSDK()->releaseTriangleMesh(*triMesh);
+            plSimulationMgrImpl::GetInstance()->GetSDK()->releaseTriangleMesh(*triMesh);
 
         // Release the scene, so it can be cleaned up if no one else is using it
-        plSimulationMgr::GetInstance()->ReleaseScene(fWorldKey);
+        plSimulationMgrImpl::GetInstance()->ReleaseScene(fWorldKey);
     }
 
     delete fProxyGen;
@@ -325,7 +325,7 @@ bool plPXPhysical::Init(PhysRecipe& recipe)
     if (fGroup == plSimDefs::kGroupDynamic)
         actorDesc.group = 1;
 
-    NxScene* scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+    NxScene* scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
     try
     {
         fActor = scene->createActor(actorDesc);
@@ -339,7 +339,7 @@ bool plPXPhysical::Init(PhysRecipe& recipe)
         return false;
 
     NxShape* shape = fActor->getShapes()[0];
-    shape->setMaterial(plSimulationMgr::GetInstance()->GetMaterialIdx(scene, recipe.friction, recipe.restitution));
+    shape->setMaterial(plSimulationMgrImpl::GetInstance()->GetMaterialIdx(scene, recipe.friction, recipe.restitution));
 
     // Turn on the trigger flags for any detectors.
     //
@@ -360,7 +360,7 @@ bool plPXPhysical::Init(PhysRecipe& recipe)
     {
         if (!fActor->isSleeping())
         {
-            if (plSimulationMgr::fExtraProfile)
+            if (plSimulationMgrImpl::fExtraProfile)
                 SimLog("Deactivating %s in SetPositionAndRotationSim", GetKeyName().c_str());
             fActor->putToSleep();
         }
@@ -520,8 +520,8 @@ plPhysical& plPXPhysical::SetProperty(int prop, bool status)
         plString name = "(unknown)";
         if (GetKey())
             name = GetKeyName();
-        if (plSimulationMgr::fExtraProfile)
-            plSimulationMgr::Log("Warning: Redundant physical property set (property %s, value %s) on %s", propName, status ? "true" : "false", name.c_str());
+        if (plSimulationMgrImpl::fExtraProfile)
+            plSimulationMgrImpl::Log("Warning: Redundant physical property set (property %s, value %s) on %s", propName, status ? "true" : "false", name.c_str());
     }
 
     switch (prop)
@@ -757,7 +757,7 @@ void plPXPhysical::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, bo
     }
     else
     {
-        if ( !fActor->isDynamic()  && plSimulationMgr::fExtraProfile)
+        if ( !fActor->isDynamic()  && plSimulationMgrImpl::fExtraProfile)
             SimLog("Setting transform on non-dynamic: %s.", GetKeyName().c_str());
     }
 }
@@ -888,9 +888,9 @@ void plPXPhysical::Read(hsStream* stream, hsResMgr* mgr)
         // Read in the cooked mesh
         plPXStream pxs(stream);
         if (recipe.bounds == plSimDefs::kHullBounds)
-            recipe.convexMesh = plSimulationMgr::GetInstance()->GetSDK()->createConvexMesh(pxs);
+            recipe.convexMesh = plSimulationMgrImpl::GetInstance()->GetSDK()->createConvexMesh(pxs);
         else
-            recipe.triMesh = plSimulationMgr::GetInstance()->GetSDK()->createTriangleMesh(pxs);
+            recipe.triMesh = plSimulationMgrImpl::GetInstance()->GetSDK()->createTriangleMesh(pxs);
     }
 
     Init(recipe);
@@ -957,7 +957,7 @@ void plPXPhysical::Write(hsStream* stream, hsResMgr* mgr)
     NxShape* shape = fActor->getShapes()[0];
 
     NxMaterialIndex matIdx = shape->getMaterial();
-    NxScene* scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+    NxScene* scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
     NxMaterial* mat = scene->getMaterialFromIndex(matIdx);
     float friction = mat->getStaticFriction();
     float restitution = mat->getRestitution();

@@ -39,33 +39,45 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plPhysXCreatable_inc
-#define plPhysXCreatable_inc
+#ifndef plSimulationMgr_H
+#define plSimulationMgr_H
 
-#include "pnFactory/plCreator.h"
+#include <map>
+#include "pnKeyedObject/hsKeyedObject.h"
+#include "hsTemplates.h"
 
-#include "plPXPhysical.h"
+class plPXPhysical;
+class plLOSDispatch;
+class plStatusLog;
+class plPhysicsSoundMgr;
+class NxPhysicsSDK;
+class NxScene;
+class plCollideMsg;
+struct hsPoint3;
 
-REGISTER_CREATABLE(plPXPhysical);
+class plSimulationMgr : public hsKeyedObject
+{
+public:
+    
+    static bool Init ();
+    static void Shutdown ();
+    
+    // Advance the simulation by the given number of seconds
+    static void Advance (float delSecs);
+    
+    // The simulation won't run at all if it is suspended
+    static void Suspend ();
+    static void Resume ();
+    static bool IsSuspended ();
+    
+    
+    // Output the given debug text to the simulation log.
+    static void Log (const char* formatStr, ...);
+    static void LogV (const char* formatStr, va_list args);
+    static void ClearLog ();
 
-//#include "plHKSimulationSynchMsg.h"
-//REGISTER_CREATABLE(plHKSimulationSynchMsg);
+    static uint32_t GetStepCount ();
 
-//#include "plHavokConstraintTools.h"
-//REGISTER_NONCREATABLE(plHavokConstraintsMod);
-//REGISTER_CREATABLE(plHingeConstraintMod);
-//REGISTER_CREATABLE(plStrongSpringConstraintMod);
-//REGISTER_CREATABLE(plWheelConstraintMod);
+};
 
-
-#include "plLOSDispatch.h"
-REGISTER_CREATABLE( plLOSDispatch );
-
-#include "plSimulationMgrImpl.h"
-REGISTER_CREATABLE( plSimulationMgrImpl );
-
-//#include "plVehicleModifier.h"
-//REGISTER_CREATABLE(plVehicleModifier);
-
-
-#endif // plPhysXCreatable_inc
+#endif

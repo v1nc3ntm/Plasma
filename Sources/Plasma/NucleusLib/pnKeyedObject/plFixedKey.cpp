@@ -106,7 +106,7 @@ plKeySeed SeedList[] = {
     { kAVIWriter_KEY,                   CLASS_INDEX_SCOPED( plAVIWriter ),              "kAVIWriter_KEY",               },
     { kResManagerHelper_KEY,            CLASS_INDEX_SCOPED( plResManagerHelper ),       "kResManagerHelper_KEY",        },
     { kAvatarMgr_KEY,                   CLASS_INDEX_SCOPED( plAvatarMgr ),              "kAvatarMgr_KEY",               },
-    { kSimulationMgr_KEY,               CLASS_INDEX_SCOPED( plSimulationMgr ),          "kSimulationMgr_KEY",           },
+    { kSimulationMgr_KEY,               CLASS_INDEX_SCOPED( plSimulationMgrImpl ),      "kSimulationMgrImpl_KEY",       },
     { kTransitionCamera_KEY,            CLASS_INDEX_SCOPED( plCameraModifier1 ),        "kTransitionCamera_KEY",        },
     { kCCRMgr_KEY,                      CLASS_INDEX_SCOPED( plCCRMgr ),                 "kCCRMgr_KEY",                  },
     { kNetClientCloneRoom_KEY,          CLASS_INDEX_SCOPED( plSceneNode ),              "kNetClientCloneRoom_KEY",      },

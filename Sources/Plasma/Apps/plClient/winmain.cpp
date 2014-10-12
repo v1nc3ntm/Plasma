@@ -66,7 +66,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plStatusLog/plStatusLog.h"
 #include "plProduct.h"
 #include "plNetGameLib/plNetGameLib.h"
-#include "plPhysX/plSimulationMgr.h"
+
+#include "plPhysical/plSimulationMgr.h"
 
 #include "res/resource.h"
 
@@ -470,11 +471,9 @@ BOOL CALLBACK WaitingForPhysXDialogProc( HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
 bool InitPhysX()
 {
-    bool physXInstalled = false;
-    while (!physXInstalled)
+    while (true)
     {
-        plSimulationMgr::Init();
-        if (!plSimulationMgr::GetInstance())
+        if (!plSimulationMgr::Init())
         {
             int ret = hsMessageBox("PhysX is not installed, or an older version is installed.\nInstall new version? (Game will exit if you click \"No\")",
                 "Missing PhysX", hsMessageBoxYesNo);
@@ -511,11 +510,10 @@ bool InitPhysX()
         }
         else
         {
-            plSimulationMgr::GetInstance()->Suspend();
-            physXInstalled = true;
+            plSimulationMgr::Suspend();
+            return true;
         }
     }
-    return true;
 }
 
 bool    InitClient( HWND hWnd )

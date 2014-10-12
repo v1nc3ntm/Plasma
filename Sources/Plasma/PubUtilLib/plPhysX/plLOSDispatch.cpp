@@ -40,7 +40,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "plLOSDispatch.h"
-#include "plSimulationMgr.h"
+#include "plSimulationMgrImpl.h"
 #include "plgDispatch.h"
 #include "plMessage/plLOSRequestMsg.h"
 #include "plMessage/plLOSHitMsg.h"
@@ -174,7 +174,7 @@ bool plLOSDispatch::MsgReceive(plMessage* msg)
     {
         plProfile_BeginTiming(LineOfSight);
 
-        plSimulationMgr* sim = plSimulationMgr::GetInstance();
+        plSimulationMgrImpl * sim = plSimulationMgrImpl::GetInstance();
 
         plKey worldKey = requestMsg->fWorldKey;
         if (!worldKey)

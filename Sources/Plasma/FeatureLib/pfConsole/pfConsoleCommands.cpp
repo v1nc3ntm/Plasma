@@ -5554,12 +5554,12 @@ PF_CONSOLE_CMD(Physics, MaxPhysicalAvatars, "int max", "Set the maximum number o
 PF_CONSOLE_CMD( Physics, SetStepsPerSecond, "int steps", "Sets the number of physics substeps per second, regardless of rendering framerate.")
 {
     int newSteps = params[0];
-    plSimulationMgr::GetInstance()->SetStepsPerSecond(newSteps);
+    plSimulationMgrImpl::GetInstance()->SetStepsPerSecond(newSteps);
 }
 
 PF_CONSOLE_CMD( Physics, GetStepsPerSecond, "", "Prints the number of physics substeps per second.")
 {
-    int steps = plSimulationMgr::GetInstance()->GetStepsPerSecond();
+    int steps = plSimulationMgrImpl::GetInstance()->GetStepsPerSecond();
 
     char buffy[256];
     sprintf(buffy, "Current physics resolution is %d frames per second.", steps);
@@ -5569,12 +5569,12 @@ PF_CONSOLE_CMD( Physics, GetStepsPerSecond, "", "Prints the number of physics su
 PF_CONSOLE_CMD(Physics, SetMaxDelta, "float maxDelta", "Sets the largest frame-to-frame delta that physics will try to resolve before giving up and freezing.")
 {
     float newMaxDelta = params[0];
-    plSimulationMgr::GetInstance()->SetMaxDelta(newMaxDelta);
+    plSimulationMgrImpl::GetInstance()->SetMaxDelta(newMaxDelta);
 }
 
 PF_CONSOLE_CMD(Physics, GetMaxDelta, "", "Prints the largest frame-to-frame delta that physics will try to resolve before giving up and freezing.")
 {
-    float oldMaxDelta = plSimulationMgr::GetInstance()->GetMaxDelta();
+    float oldMaxDelta = plSimulationMgrImpl::GetInstance()->GetMaxDelta();
 
     char buffy[256];
     sprintf(buffy, "When (delta > %f), physics is suspended for that frame.", oldMaxDelta);
@@ -5584,7 +5584,7 @@ PF_CONSOLE_CMD(Physics, GetMaxDelta, "", "Prints the largest frame-to-frame delt
 PF_CONSOLE_CMD(Physics, SetDeactivateFreq, "float freq", "")
 {
     float freq = params[0];
-    plSimulationMgr::GetInstance()->SetDeactivateFreq(freq);
+    plSimulationMgrImpl::GetInstance()->SetDeactivateFreq(freq);
 }
 
 PF_CONSOLE_CMD(Physics, SetCollisionTolerance, "float tol", "Minimum distance objects must be from each other to collide.  Set from an ini file.")
@@ -5595,20 +5595,20 @@ PF_CONSOLE_CMD(Physics, SetCollisionTolerance, "float tol", "Minimum distance ob
 
 PF_CONSOLE_CMD( Physics, Suspend, "", "Toggle suspend/resume physics.")
 {
-    if(plSimulationMgr::GetInstance()->IsSuspended())
-        plSimulationMgr::GetInstance()->Resume();
+    if(plSimulationMgrImpl::GetInstance()->IsSuspended())
+        plSimulationMgrImpl::GetInstance()->Resume();
     else
-        plSimulationMgr::GetInstance()->Suspend();
+        plSimulationMgrImpl::GetInstance()->Suspend();
 }
 
 PF_CONSOLE_CMD( Physics, ShowExternal, "", "Display a snapshot of the world as Havok sees it. Requires separate debug app." )
 {
-    plSimulationMgr::GetInstance()->ExternalDebugDisplay();
+    plSimulationMgrImpl::GetInstance()->ExternalDebugDisplay();
 }
 
 //PF_CONSOLE_CMD( Physics, SetGravity, "float fpsps", "Set gravity in feet per second per second.")
 //{
-//  plSimulationMgr::GetInstance()->SetGravity(0,0,params[0]);
+//  plSimulationMgrImpl::GetInstance()->SetGravity(0,0,params[0]);
 //}
 
 PF_CONSOLE_CMD( Physics, ApplyForce, "string Object, float x, float y, float z", "Apply a force to a scene object at its center of mass.")
@@ -5757,7 +5757,7 @@ PF_CONSOLE_CMD( Physics, ToggleShowImpacts, "", "Shows the names of impacting ph
 
 PF_CONSOLE_CMD( Physics, DumpRejectedBroadphase, "", "")
 {
-    plSimulationMgr::GetInstance()->DumpRejectedBroadPhase(true);
+    plSimulationMgrImpl::GetInstance()->DumpRejectedBroadPhase(true);
 }
 
 extern int gPhysicsAnimatedOptimize;
@@ -5768,7 +5768,7 @@ PF_CONSOLE_CMD( Physics, OptimizeAnimatedPhysicals, "int enable", "if true then 
 
 PF_CONSOLE_CMD( Physics, ClearLog, "", "Clear the physics log.")
 {
-    plSimulationMgr::ClearLog();
+    plSimulationMgrImpl::ClearLog();
 }
 */
 #include "plPhysical/plPhysicalSDLModifier.h"
@@ -5779,18 +5779,18 @@ PF_CONSOLE_CMD(Physics, LogSDL, "int level", "Turn logging of physics SDL state 
     plPhysicalSDLModifier::SetLogLevel(level);
 }
 
-#include "plPhysX/plSimulationMgr.h"
+#include "plPhysX/plSimulationMgrImpl.h"
 PF_CONSOLE_CMD(Physics, ExtraProfile, "", "Toggle extra simulation profiling")
 {
     char str[256];
-    if (plSimulationMgr::fExtraProfile)
+    if (plSimulationMgrImpl::fExtraProfile)
     {
-        plSimulationMgr::fExtraProfile = false;
+        plSimulationMgrImpl::fExtraProfile = false;
         sprintf(str, "Stop extra profiling");
     }
     else
     {
-        plSimulationMgr::fExtraProfile = true;
+        plSimulationMgrImpl::fExtraProfile = true;
         sprintf(str, "Start extra profiling");
     }
     PrintString( str );
@@ -5798,14 +5798,14 @@ PF_CONSOLE_CMD(Physics, ExtraProfile, "", "Toggle extra simulation profiling")
 PF_CONSOLE_CMD(Physics, SubworldOptimization, "", "Toggle subworld optimization")
 {
     char str[256];
-    if (plSimulationMgr::fSubworldOptimization)
+    if (plSimulationMgrImpl::fSubworldOptimization)
     {
-        plSimulationMgr::fSubworldOptimization = false;
+        plSimulationMgrImpl::fSubworldOptimization = false;
         sprintf(str, "Stop subworld optimization");
     }
     else
     {
-        plSimulationMgr::fSubworldOptimization = true;
+        plSimulationMgrImpl::fSubworldOptimization = true;
         sprintf(str, "Start subworld optimization");
     }
     PrintString( str );
@@ -5813,14 +5813,14 @@ PF_CONSOLE_CMD(Physics, SubworldOptimization, "", "Toggle subworld optimization"
 PF_CONSOLE_CMD(Physics, ClampingOnStep, "", "Toggle whether to clamp the step size on advance")
 {
     char str[256];
-    if (plSimulationMgr::fDoClampingOnStep)
+    if (plSimulationMgrImpl::fDoClampingOnStep)
     {
-        plSimulationMgr::fDoClampingOnStep = false;
+        plSimulationMgrImpl::fDoClampingOnStep = false;
         sprintf(str, "Stop clamping the step size");
     }
     else
     {
-        plSimulationMgr::fDoClampingOnStep = true;
+        plSimulationMgrImpl::fDoClampingOnStep = true;
         sprintf(str, "Start clamping the step size");
     }
     PrintString( str );
@@ -5838,7 +5838,7 @@ PF_CONSOLE_CMD(Physics,
                "", 
                "Toggles displaying the list of awake actors")
 {
-    plSimulationMgr::fDisplayAwakeActors= !plSimulationMgr::fDisplayAwakeActors;
+    plSimulationMgrImpl::fDisplayAwakeActors= !plSimulationMgrImpl::fDisplayAwakeActors;
 }
 
 /*

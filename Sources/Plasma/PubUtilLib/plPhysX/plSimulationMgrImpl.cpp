@@ -39,7 +39,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plSimulationMgr.h"
+#include "plPhysical/plSimulationMgr.h"
+#include "plSimulationMgrImpl.h"
 
 #ifdef __MINGW32__
 #   define NX_CALL_CONV __cdecl
@@ -71,7 +72,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #ifndef PLASMA_EXTERNAL_RELEASE
 #include "plPipeline/plDebugText.h"
-bool plSimulationMgr::fDisplayAwakeActors=false;
+bool plSimulationMgrImpl::fDisplayAwakeActors=false;
 #endif //PLASMA_EXTERNAL_RELEASE
 // This gets called by PhysX whenever a trigger gets penetrated.  This is used
 // for any Plasma detectors.
@@ -106,15 +107,15 @@ class SensorReport : public NxUserTriggerReport
         {
             if (status & NX_TRIGGER_ON_ENTER)
             {
-                if (plSimulationMgr::fExtraProfile)
+                if (plSimulationMgrImpl::fExtraProfile)
                     DetectorLogRed("-->Send Collision %s enter",triggerPhys->GetObjectKey()->GetName().c_str());
-                plSimulationMgr::GetInstance()->AddCollisionMsg(triggerPhys->GetObjectKey(), otherKey, true);
+                plSimulationMgrImpl::GetInstance()->AddCollisionMsg(triggerPhys->GetObjectKey(), otherKey, true);
             }
             else if (status & NX_TRIGGER_ON_LEAVE)
             {
-                if (plSimulationMgr::fExtraProfile)
+                if (plSimulationMgrImpl::fExtraProfile)
                     DetectorLogRed("-->Send Collision %s exit",triggerPhys->GetObjectKey()->GetName().c_str());
-                plSimulationMgr::GetInstance()->AddCollisionMsg(triggerPhys->GetObjectKey(), otherKey, false);
+                plSimulationMgrImpl::GetInstance()->AddCollisionMsg(triggerPhys->GetObjectKey(), otherKey, false);
             }
         }
     }
@@ -136,7 +137,7 @@ class ContactReport : public NxUserContactReport
         if (!phys1 || !phys2)
             return;
 
-        plSimulationMgr::GetInstance()->ConsiderSynch(phys1, phys2);
+        plSimulationMgrImpl::GetInstance()->ConsiderSynch(phys1, phys2);
 
         if (phys1->GetSoundGroup() && phys2->GetSoundGroup())
         {
@@ -156,7 +157,7 @@ class ContactReport : public NxUserContactReport
                 }
             }
 
-            plSimulationMgr::GetInstance()->fSoundMgr->AddContact(
+            plSimulationMgrImpl::GetInstance()->fSoundMgr->AddContact(
                 phys1, phys2, contactPoint,
                 plPXConvert::Vector(pair.sumNormalForce));
         }
@@ -179,19 +180,19 @@ class ErrorStream : public NxUserOutputStream
         default:                    errorType = "unknown error";
         }
 
-        plSimulationMgr::Log("%s(%d) : %s: %s", file, line, errorType, message);
+        plSimulationMgrImpl::Log("%s(%d) : %s: %s", file, line, errorType, message);
     }
 
     virtual NxAssertResponse reportAssertViolation(const char* message, const char* file, int line)
     {
-        plSimulationMgr::Log("access violation : %s (%s(%d))", message, file, line);
+        plSimulationMgrImpl::Log("access violation : %s (%s(%d))", message, file, line);
         hsAssert(0, "PhysX assert, see simulation log for details");
         return NX_AR_CONTINUE;
     }
 
     virtual void print(const char* message)
     {
-        plSimulationMgr::Log(message);
+        plSimulationMgrImpl::Log(message);
     }
 } gErrorStream;
 
@@ -247,15 +248,17 @@ plProfile_CreateCounter("Controllers", "Simulation", Controllers);
 plProfile_CreateCounter("StepLength", "Simulation", StepLen);
 
 // declared at file scope so that both GetInstance and the destructor can access it.
-static plSimulationMgr* gTheInstance = NULL;
-bool plSimulationMgr::fExtraProfile = false;
-bool plSimulationMgr::fSubworldOptimization = false;
-bool plSimulationMgr::fDoClampingOnStep=true;
+namespace {
+    plSimulationMgrImpl * gTheInstance = NULL;
+}
+bool plSimulationMgrImpl::fExtraProfile = false;
+bool plSimulationMgrImpl::fSubworldOptimization = false;
+bool plSimulationMgrImpl::fDoClampingOnStep=true;
 
-void plSimulationMgr::Init()
+bool plSimulationMgr::Init()
 {
     hsAssert(!gTheInstance, "Initializing the sim when it's already been done");
-    gTheInstance = new plSimulationMgr();
+    gTheInstance = new plSimulationMgrImpl();
     if (gTheInstance->InitSimulation())
         gTheInstance->RegisterAs(kSimulationMgr_KEY);
     else
@@ -265,6 +268,8 @@ void plSimulationMgr::Init()
         delete gTheInstance; // clean up the memory we allocated
         gTheInstance = nil;
     }
+    
+    return gTheInstance;
 }
 
 // when the app is going away completely
@@ -278,14 +283,43 @@ void plSimulationMgr::Shutdown()
     }
 }
 
-plSimulationMgr* plSimulationMgr::GetInstance()
+void plSimulationMgr::Advance (float delSecs)
 {
-    return gTheInstance;
+    if (gTheInstance)
+        gTheInstance->Advance(delSecs);
+}
+
+void plSimulationMgr::Suspend ()
+{
+    if (gTheInstance)
+        gTheInstance->fSuspended = true;
+}
+void plSimulationMgr::Resume ()
+{
+    if (gTheInstance)
+        gTheInstance->fSuspended = false;
+}
+bool plSimulationMgr::IsSuspended ()
+{
+    if (gTheInstance)
+        return gTheInstance->fSuspended;
+    return false;
+}
+uint32_t plSimulationMgr::GetStepCount ()
+{
+    if (gTheInstance)
+        return gTheInstance->fStepCount;
+    return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-plSimulationMgr::plSimulationMgr()
+plSimulationMgrImpl * plSimulationMgrImpl::GetInstance ()
+{
+    return gTheInstance;
+}
+
+plSimulationMgrImpl::plSimulationMgrImpl()
     : fSuspended(true)
     , fAccumulator(0.0f)
     , fStepCount(0)
@@ -296,7 +330,7 @@ plSimulationMgr::plSimulationMgr()
 
 }
 
-bool plSimulationMgr::InitSimulation()
+bool plSimulationMgrImpl::InitSimulation()
 {
     fSDK = NxCreatePhysicsSDK(NX_PHYSICS_SDK_VERSION, NULL, &gErrorStream);
     if (!fSDK)
@@ -313,7 +347,7 @@ bool plSimulationMgr::InitSimulation()
     return true;
 }
 
-plSimulationMgr::~plSimulationMgr()
+plSimulationMgrImpl::~plSimulationMgrImpl()
 {
     fLOSDispatch->UnRef();
     fLOSDispatch = nil;
@@ -330,7 +364,7 @@ plSimulationMgr::~plSimulationMgr()
     fLog = nil;
 }
 
-NxScene* plSimulationMgr::GetScene(plKey world)
+NxScene* plSimulationMgrImpl::GetScene(plKey world)
 {
     if (!world)
         world = GetKey();
@@ -397,7 +431,7 @@ NxScene* plSimulationMgr::GetScene(plKey world)
     return scene;
 }
 
-void plSimulationMgr::ReleaseScene(plKey world)
+void plSimulationMgrImpl::ReleaseScene(plKey world)
 {
     if (!world)
         world = GetKey();
@@ -415,7 +449,7 @@ void plSimulationMgr::ReleaseScene(plKey world)
     }
 }
 
-void plSimulationMgr::AddCollisionMsg(plKey hitee, plKey hitter, bool enter)
+void plSimulationMgrImpl::AddCollisionMsg(plKey hitee, plKey hitter, bool enter)
 {
     // First, make sure we have no dupes
     for (CollisionVec::iterator it = fCollideMsgs.begin(); it != fCollideMsgs.end(); ++it)
@@ -442,12 +476,12 @@ void plSimulationMgr::AddCollisionMsg(plKey hitee, plKey hitter, bool enter)
     pMsg->fEntering = enter;
     fCollideMsgs.push_back(pMsg);
 }
-void plSimulationMgr::AddCollisionMsg(plCollideMsg* msg)
+void plSimulationMgrImpl::AddCollisionMsg(plCollideMsg* msg)
 {
     fCollideMsgs.push_back(msg);
 }
 
-void plSimulationMgr::Advance(float delSecs)
+void plSimulationMgrImpl::Advance(float delSecs)
 {
     if (fSuspended)
         return;
@@ -501,7 +535,7 @@ void plSimulationMgr::Advance(float delSecs)
 
     plProfile_EndTiming(Step);
 #ifndef PLASMA_EXTERNAL_RELEASE
-    if(plSimulationMgr::fDisplayAwakeActors)IDrawActiveActorList();
+    if(plSimulationMgrImpl::fDisplayAwakeActors)IDrawActiveActorList();
 #endif 
     if (fExtraProfile)
     {
@@ -557,7 +591,7 @@ void plSimulationMgr::Advance(float delSecs)
     plProfile_EndTiming(UpdateContexts);
 }
 
-void plSimulationMgr::ISendUpdates()
+void plSimulationMgrImpl::ISendUpdates()
 {
     for (CollisionVec::iterator it = fCollideMsgs.begin(); it != fCollideMsgs.end(); ++it)
     {
@@ -593,7 +627,7 @@ void plSimulationMgr::ISendUpdates()
                         const plString &physName = physical->GetKeyName();
                         if (!physName.IsNull())
                         {
-                            plSimulationMgr::Log("Removing physical <%s> because of missing scene node.\n", physName.c_str());
+                            plSimulationMgrImpl::Log("Removing physical <%s> because of missing scene node.\n", physName.c_str());
                         }
                     }
 //                  Remove(physical);
@@ -627,7 +661,7 @@ void plSimulationMgr::ISendUpdates()
 //
 /////////////////////////////////////////////////////////////////
 
-int plSimulationMgr::GetMaterialIdx(NxScene* scene, float friction, float restitution)
+int plSimulationMgrImpl::GetMaterialIdx(NxScene* scene, float friction, float restitution)
 {
     if (friction == 0.5f && restitution == 0.5f)
         return 0;
@@ -674,9 +708,9 @@ int plSimulationMgr::GetMaterialIdx(NxScene* scene, float friction, float restit
 //
 /////////////////////////////////////////////////////////////////
 
-const double plSimulationMgr::SynchRequest::kDefaultTime = -1000.0;
+const double plSimulationMgrImpl::SynchRequest::kDefaultTime = -1000.0;
 
-void plSimulationMgr::ConsiderSynch(plPXPhysical* physical, plPXPhysical* other)
+void plSimulationMgrImpl::ConsiderSynch(plPXPhysical* physical, plPXPhysical* other)
 {
     if (physical->GetProperty(plSimulationInterface::kNoSynchronize) &&
         (!other || other->GetProperty(plSimulationInterface::kNoSynchronize)))
@@ -735,7 +769,7 @@ void plSimulationMgr::ConsiderSynch(plPXPhysical* physical, plPXPhysical* other)
     }
 }
 
-void plSimulationMgr::IProcessSynchs()
+void plSimulationMgrImpl::IProcessSynchs()
 {
     double time = hsTimer::GetSysSeconds();
 
@@ -767,7 +801,7 @@ void plSimulationMgr::IProcessSynchs()
     }
 }
 
-void plSimulationMgr::Log(const char * fmt, ...)
+void plSimulationMgrImpl::Log(const char * fmt, ...)
 {
     if(gTheInstance)
     {
@@ -782,7 +816,7 @@ void plSimulationMgr::Log(const char * fmt, ...)
     }
 }
 
-void plSimulationMgr::LogV(const char* formatStr, va_list args)
+void plSimulationMgrImpl::LogV(const char* formatStr, va_list args)
 {
     if(gTheInstance)
     {
@@ -794,7 +828,7 @@ void plSimulationMgr::LogV(const char* formatStr, va_list args)
     }
 }
 
-void plSimulationMgr::ClearLog()
+void plSimulationMgrImpl::ClearLog()
 {
     if(gTheInstance)
     {
@@ -807,7 +841,7 @@ void plSimulationMgr::ClearLog()
 }
 #ifndef PLASMA_EXTERNAL_RELEASE
 
-void plSimulationMgr::IDrawActiveActorList()
+void plSimulationMgrImpl::IDrawActiveActorList()
 {
     plDebugText     &debugTxt = plDebugText::Instance();
     char            strBuf[ 2048 ];

@@ -39,8 +39,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plSimulationMgr_H
-#define plSimulationMgr_H
+#ifndef plSimulationMgrImpl_H
+#define plSimulationMgrImpl_H
 
 #include <map>
 #include "pnKeyedObject/hsKeyedObject.h"
@@ -55,15 +55,16 @@ class NxScene;
 class plCollideMsg;
 struct hsPoint3;
 
-class plSimulationMgr : public hsKeyedObject
+class plSimulationMgrImpl : public hsKeyedObject
 {
 public:
-    CLASSNAME_REGISTER(plSimulationMgr);
-    GETINTERFACE_ANY(plSimulationMgr, hsKeyedObject);
-
-    static plSimulationMgr* GetInstance();
-    static void Init();
-    static void Shutdown();
+    CLASSNAME_REGISTER(plSimulationMgrImpl);
+    GETINTERFACE_ANY(plSimulationMgrImpl, hsKeyedObject);
+    
+    static plSimulationMgrImpl * GetInstance ();
+    
+    // Advance the simulation by the given number of seconds
+    void Advance (float delSecs);
 
     static bool fExtraProfile;
     static bool fSubworldOptimization;
@@ -71,14 +72,6 @@ public:
 
     // initialiation of the PhysX simulation
     virtual bool InitSimulation();
-
-    // Advance the simulation by the given number of seconds
-    void Advance(float delSecs);
-
-    // The simulation won't run at all if it is suspended
-    void Suspend() { fSuspended = true; }
-    void Resume() { fSuspended = false; }
-    bool IsSuspended() { return fSuspended; }
 
     // Output the given debug text to the simulation log.
     static void Log(const char* formatStr, ...);
@@ -109,11 +102,12 @@ public:
 
 protected:
     friend class ContactReport;
+    friend class plSimulationMgr;
 
     void ISendUpdates();
 
-    plSimulationMgr();
-    virtual ~plSimulationMgr();
+    plSimulationMgrImpl();
+    virtual ~plSimulationMgrImpl();
 
     // Walk through the synchronization requests and send them as appropriate.
     void IProcessSynchs();
@@ -168,13 +162,13 @@ protected:
 #define SIM_VERBOSE
 
 #ifdef SIM_VERBOSE
-#include <cstdarg>     // only include when we need to call plSimulationMgr::Log
+#include <cstdarg>     // only include when we need to call plSimulationMgrImpl::Log
 
 inline void SimLog(const char *str, ...)
 {
     va_list args;
     va_start(args, str);
-    plSimulationMgr::LogV(str, args);
+    plSimulationMgrImpl::LogV(str, args);
     va_end(args);
 }
 

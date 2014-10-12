@@ -105,7 +105,7 @@ public:
 class plPXPhysical : public plPhysical
 {
 public:
-    friend class plSimulationMgr;
+    friend class plSimulationMgrImpl;
 
     enum PhysRefType
     {

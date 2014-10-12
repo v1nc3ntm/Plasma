@@ -71,7 +71,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plModifier/plDetectorLog.h"
 
 #ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
-#include "plPhysX/plSimulationMgr.h"
+#include "plSimulationMgr.h"
 #endif
 
 
@@ -273,7 +273,7 @@ bool plCameraRegionDetector::MsgReceive(plMessage* msg)
         fEntering = (pCollMsg->fEntering != 0);
 
  #ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
-        fLastStep = plSimulationMgr::GetInstance()->GetStepCount();
+        fLastStep = plSimulationMgr::GetStepCount();
 #endif
         return true;
     }
@@ -304,7 +304,7 @@ void plCameraRegionDetector::Write(hsStream* stream, hsResMgr* mgr)
 void plCameraRegionDetector::IHandleEval(plEvalMsg*)
 {
 #ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
-    if (plSimulationMgr::GetInstance()->GetStepCount() - fLastStep > 1)
+    if (plSimulationMgr::GetStepCount() - fLastStep > 1)
     {
 #endif
         if (fIsInside != fEntering)
@@ -335,7 +335,7 @@ void plObjectInVolumeDetector::ITrigger(plKey hitter, bool entering)
         if (collisionInfo->fHitter == hitter)
         {
             collisionInfo->fEntering = entering;
-            collisionInfo->fLastStep = plSimulationMgr::GetInstance()->GetStepCount();
+            collisionInfo->fLastStep = plSimulationMgr::GetStepCount();
             return;
         }
     }
@@ -344,7 +344,7 @@ void plObjectInVolumeDetector::ITrigger(plKey hitter, bool entering)
     plCollisionBookKeepingInfo* collisionInfo = new plCollisionBookKeepingInfo(hitter, entering);
     fCollisionList.push_back(collisionInfo);
 #ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
-    collisionInfo->fLastStep = plSimulationMgr::GetInstance()->GetStepCount();
+    collisionInfo->fLastStep = plSimulationMgr::GetStepCount();
 #endif
 }
 
@@ -405,7 +405,7 @@ void plObjectInVolumeDetector::IHandleEval(plEvalMsg*)
     {
         plCollisionBookKeepingInfo* collisionInfo = *it;
 #ifdef USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
-        if (plSimulationMgr::GetInstance()->GetStepCount() - collisionInfo->fLastStep > 1)
+        if (plSimulationMgr::GetStepCount() - collisionInfo->fLastStep > 1)
         {
 #endif // USE_PHYSX_COLLISION_FLUTTER_WORKAROUND
             ResidentSet::iterator j = fCurrentResidents.find(collisionInfo->fHitter);

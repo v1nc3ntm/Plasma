@@ -301,7 +301,7 @@ CLASS_INDEX_LIST_START
     CLASS_INDEX(plExcludeRegionSDLModifier),
     CLASS_INDEX(plLOSDispatch),
     CLASS_INDEX(plDynaWakeMgr),
-    CLASS_INDEX(plSimulationMgr),
+    CLASS_INDEX(plSimulationMgrImpl),
     CLASS_INDEX(plWaveSet7),
     CLASS_INDEX(plPanicLinkRegion),
     CLASS_INDEX(plWin32GroupedSound),

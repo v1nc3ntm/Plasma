@@ -40,7 +40,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 *==LICENSE==*/
 #include "plPXPhysicalControllerCore.h"
-#include "plSimulationMgr.h"
+#include "plSimulationMgrImpl.h"
 #include "plPXPhysical.h"
 #include "plPXConvert.h"
 #include "pnSceneObject/plSimulationInterface.h"
@@ -453,7 +453,7 @@ int plPXPhysicalControllerCore::SweepControllerPath(const hsPoint3& startPos, co
     capsule.p1 = capsule.p0;
     capsule.p1.z = capsule.p1.z + height;
 
-    NxScene *scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+    NxScene *scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
     int numHits = scene->linearCapsuleSweep(capsule, vec, flags, nil, 10, queryHit, nil, vsSimGroups);
     if (numHits)
     {
@@ -670,7 +670,7 @@ void plPXPhysicalControllerCore::IInformDetectors(bool entering)
     NxShape* shapes[kNumShapes];
     NxCapsule capsule;
     GetWorldSpaceCapsule(capsule);
-    NxScene* scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+    NxScene* scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
     int numCollided = scene->overlapCapsuleShapes(capsule, NX_ALL_SHAPES, kNumShapes, shapes, NULL, kDetectorFlag, NULL, true);
     for (int i = 0; i < numCollided; ++i)
     {
@@ -692,7 +692,7 @@ void plPXPhysicalControllerCore::IInformDetectors(bool entering)
 
 void plPXPhysicalControllerCore::ICreateController(const hsPoint3& pos)
 {
-    NxScene* scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+    NxScene* scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
 
     if (fKinematicCCT)
     {
@@ -738,7 +738,7 @@ void plPXPhysicalControllerCore::ICreateController(const hsPoint3& pos)
     {
         // Use dynamic actor for the character controller
         NxCapsuleShapeDesc capDesc;
-        capDesc.materialIndex = plSimulationMgr::GetInstance()->GetMaterialIdx(scene, 0.0f, 0.0f);
+        capDesc.materialIndex = plSimulationMgrImpl::GetInstance()->GetMaterialIdx(scene, 0.0f, 0.0f);
         capDesc.radius = fRadius + kCCTSkinWidth;
         capDesc.height = fHeight + kPhysHeightCorrection;
 
@@ -793,12 +793,12 @@ void plPXPhysicalControllerCore::IDeleteController()
     }
     else
     {
-        NxScene* scene = plSimulationMgr::GetInstance()->GetScene(fWorldKey);
+        NxScene* scene = plSimulationMgrImpl::GetInstance()->GetScene(fWorldKey);
         scene->releaseActor(*fActor);
     }
 
     fActor = nil;
-    plSimulationMgr::GetInstance()->ReleaseScene(fWorldKey);
+    plSimulationMgrImpl::GetInstance()->ReleaseScene(fWorldKey);
 }
 
 void plPXPhysicalControllerCore::IDispatchQueuedMsgs()
@@ -806,7 +806,7 @@ void plPXPhysicalControllerCore::IDispatchQueuedMsgs()
     int numMsgs = fQueuedCollideMsgs.size();
     if (numMsgs)
     {
-        plSimulationMgr* simMgr = plSimulationMgr::GetInstance();
+        plSimulationMgrImpl* simMgr = plSimulationMgrImpl::GetInstance();
         for (int i = 0; i < numMsgs; ++i)
             simMgr->AddCollisionMsg(fQueuedCollideMsgs[i]);
 
@@ -819,7 +819,7 @@ void plPXPhysicalControllerCore::IProcessDynamicHits()
     if (numHits)
     {
         plPXPhysical* phys;
-        plSimulationMgr* simMgr = plSimulationMgr::GetInstance();
+        plSimulationMgrImpl* simMgr = plSimulationMgrImpl::GetInstance();
         for (int i = 0; i < numHits; ++i)
         {
             phys = fDynamicHits[i];

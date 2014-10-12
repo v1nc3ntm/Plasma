@@ -10,7 +10,7 @@ set(plPhysX_SOURCES
     plPXConvert.cpp
     plPXPhysical.cpp
     plPXPhysicalControllerCore.cpp
-    plSimulationMgr.cpp
+    plSimulationMgrImpl.cpp
 )
 
 set(plPhysX_HEADERS
@@ -20,7 +20,7 @@ set(plPhysX_HEADERS
     plPXPhysical.h
     plPXPhysicalControllerCore.h
     plPXStream.h
-    plSimulationMgr.h
+    plSimulationMgrImpl.h
 )
 
 add_library(plPhysX STATIC ${plPhysX_SOURCES} ${plPhysX_HEADERS})
