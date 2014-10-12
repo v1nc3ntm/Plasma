@@ -57,8 +57,7 @@ plPhysicalProxy::plPhysicalProxy()
 
 plPhysicalProxy::plPhysicalProxy(const hsColorRGBA& amb, const hsColorRGBA& dif, float opac)
 :   plProxyGen(amb, dif, opac),
-    fOwner(nil),
-    fController(nil)
+    fOwner(nil)
 {
 }
 
@@ -76,24 +75,10 @@ bool plPhysicalProxy::Init(plPhysical* liInfo)
     return fOwner != nil;
 }
 
-bool plPhysicalProxy::Init(plPXPhysicalControllerCore* controller)
-{
-    if (controller)
-        if (controller->GetOwner())
-            plProxyGen::Init(controller->GetOwner()->GetObjectPtr());
-
-    fController = controller;
-    fProxyMsgType = plProxyDrawMsg::kPhysical;
-
-    return fController != nil;
-}
-
 plKey plPhysicalProxy::IGetNode() const 
 {
     if (fOwner)
         return fOwner->GetSceneNode();
-    if (fController)
-        return fController->GetOwner();
     return nil;
 }
 
@@ -102,10 +87,6 @@ plDrawableSpans* plPhysicalProxy::ICreateProxy(hsGMaterial* mat, hsTArray<uint32
     if (fOwner)
     {
         return fOwner->CreateProxy(mat, idx, addTo);
-    }
-    if (fController)
-    {
-        return fController->CreateProxy(mat,idx,addTo);
     }
     return nil;
 }

@@ -48,7 +48,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plAvatar/plArmatureMod.h"
 #include "pnSceneObject/plCoordinateInterface.h"
 #include "plDrawable/plDrawableGenerator.h"
-#include "plPhysical/plPhysicalProxy.h"
+#include "plPhysX/plPXPhysicalProxy.h"
 #include "pnMessage/plSetNetGroupIDMsg.h"
 #include "plMessage/plCollideMsg.h"
 #include "plModifier/plDetectorLog.h"
@@ -780,7 +780,7 @@ void plPXPhysicalControllerCore::ICreateController(const hsPoint3& pos)
     physColor.Set(.2f, .1f, .2f, 1.f);
     opac = 0.8f;
 
-    fProxyGen = new plPhysicalProxy(hsColorRGBA().Set(0,0,0,1.f), physColor, opac);
+    fProxyGen = new plPXPhysicalProxy(hsColorRGBA().Set(0,0,0,1.f), physColor, opac);
     fProxyGen->Init(this);
     */
 }

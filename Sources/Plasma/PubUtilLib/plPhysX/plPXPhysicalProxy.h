@@ -39,29 +39,29 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plPhysicalProxy_inc
-#define plPhysicalProxy_inc
+#ifndef plPXPhysicalProxy_inc
+#define plPXPhysicalProxy_inc
 
 #include "plDrawable/plProxyGen.h"
 
 class plDrawableSpans;
 class hsGMaterial;
-class plPhysical;
+class plPXPhysicalControllerCore;
 
-class plPhysicalProxy : public plProxyGen
+class plPXPhysicalProxy : public plProxyGen
 {
 public:
-    plPhysicalProxy();
-    plPhysicalProxy(const hsColorRGBA& amb, const hsColorRGBA& dif, float opac);
-    virtual ~plPhysicalProxy();
+    plPXPhysicalProxy();
+    plPXPhysicalProxy(const hsColorRGBA& amb, const hsColorRGBA& dif, float opac);
+    virtual ~plPXPhysicalProxy();
 
-    bool Init(plPhysical* phys);
+    bool Init(plPXPhysicalControllerCore* controller);
 
 protected:
-    plPhysical* fOwner;
+    plPXPhysicalControllerCore* fController;
 
     virtual plDrawableSpans*    ICreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo=nil);
     virtual plKey               IGetNode() const;
 };
 
-#endif // plPhysicalProxy_inc
+#endif // plPXPhysicalProxy_inc

@@ -39,29 +39,56 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plPhysicalProxy_inc
-#define plPhysicalProxy_inc
+#include "plPhysical.h"
+#include "plPhysX/plPXPhysicalControllerCore.h"
+#include "plPhysX/plPXPhysicalProxy.h"
+#include "plDrawable/plDrawableSpans.h"
+#include "plDrawable/plDrawableGenerator.h"
+#include "pnMessage/plProxyDrawMsg.h"
 
-#include "plDrawable/plProxyGen.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayer.h"
 
-class plDrawableSpans;
-class hsGMaterial;
-class plPhysical;
-
-class plPhysicalProxy : public plProxyGen
+plPXPhysicalProxy::plPXPhysicalProxy()
+:   plProxyGen(hsColorRGBA().Set(0,0,0,1.f), hsColorRGBA().Set(1.f,0.8f,0.2f,1.f), 0.5f),
+    fController(nil)
 {
-public:
-    plPhysicalProxy();
-    plPhysicalProxy(const hsColorRGBA& amb, const hsColorRGBA& dif, float opac);
-    virtual ~plPhysicalProxy();
+}
 
-    bool Init(plPhysical* phys);
+plPXPhysicalProxy::plPXPhysicalProxy(const hsColorRGBA& amb, const hsColorRGBA& dif, float opac)
+:   plProxyGen(amb, dif, opac),
+    fController(nil)
+{
+}
 
-protected:
-    plPhysical* fOwner;
+plPXPhysicalProxy::~plPXPhysicalProxy()
+{
+}
 
-    virtual plDrawableSpans*    ICreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo=nil);
-    virtual plKey               IGetNode() const;
-};
+bool plPXPhysicalProxy::Init(plPXPhysicalControllerCore* controller)
+{
+    if (controller)
+        if (controller->GetOwner())
+            plProxyGen::Init(controller->GetOwner()->GetObjectPtr());
 
-#endif // plPhysicalProxy_inc
+    fController = controller;
+    fProxyMsgType = plProxyDrawMsg::kPhysical;
+
+    return fController != nil;
+}
+
+plKey plPXPhysicalProxy::IGetNode() const 
+{
+    if (fController)
+        return fController->GetOwner();
+    return nil;
+}
+
+plDrawableSpans* plPXPhysicalProxy::ICreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo)
+{
+    if (fController)
+    {
+        return fController->CreateProxy(mat,idx,addTo);
+    }
+    return nil;
+}

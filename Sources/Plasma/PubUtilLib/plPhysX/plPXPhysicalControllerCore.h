@@ -45,7 +45,7 @@ class NxCapsuleController;
 class NxActor;
 class NxCapsule;
 class PXControllerHitReport;
-class plPhysicalProxy;
+class plPXPhysicalProxy;
 class plDrawableSpans;
 class hsGMaterial;
 class plSceneObject;
@@ -167,7 +167,7 @@ protected:
     NxCapsuleController* fController;
     NxActor* fActor;
 
-    plPhysicalProxy* fProxyGen;
+    plPXPhysicalProxy* fProxyGen;
     bool fKinematicCCT;
     bool fHuman;
 };
