@@ -47,7 +47,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnKeyedObject/plFixedKey.h"
 #include "pnSceneObject/plSceneObject.h"
 #include "plModifier/plLogicModifier.h"
-#include "plPXPhysical.h"
+#include "plPhysicalImpl.h"
 #include "plPXPhysicalControllerCore.h"
 #include "plPXConvert.h"
 
@@ -82,7 +82,7 @@ private:
     virtual bool onHit(const NxRaycastHit& hit)
     {
         NxActor& hitActor = hit.shape->getActor();
-        plPXPhysical* phys = (plPXPhysical*)hitActor.userData;
+        plPhysicalImpl* phys = (plPhysicalImpl*)hitActor.userData;
 
         plKey objKey = nil;
         uint16_t objDB = plSimDefs::kLOSDBNone;

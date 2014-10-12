@@ -44,9 +44,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "pnFactory/plCreator.h"
 
-#include "plPXPhysical.h"
+#include "plPhysicalImpl.h"
 
-REGISTER_CREATABLE(plPXPhysical);
+REGISTER_CREATABLE(plPhysicalImpl);
 
 //#include "plHKSimulationSynchMsg.h"
 //REGISTER_CREATABLE(plHKSimulationSynchMsg);

@@ -56,7 +56,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plgDispatch.h"
 #include "hsTimer.h"
 #include "plProfile.h"
-#include "plPXPhysical.h"
+#include "plPhysicalImpl.h"
 #include "plPXPhysicalControllerCore.h"
 #include "plPXConvert.h"
 #include "plLOSDispatch.h"
@@ -83,11 +83,11 @@ class SensorReport : public NxUserTriggerReport
         plKey otherKey = nil;
         bool doReport = false;
 
-        // Get our trigger physical.  This should definitely have a plPXPhysical
-        plPXPhysical* triggerPhys = (plPXPhysical*)triggerShape.getActor().userData;
+        // Get our trigger physical.  This should definitely have a plPhysicalImpl
+        plPhysicalImpl* triggerPhys = (plPhysicalImpl*)triggerShape.getActor().userData;
 
         // Get the triggerer. If it doesn't have a plPXPhyscial, it's an avatar
-        plPXPhysical* otherPhys = (plPXPhysical*)otherShape.getActor().userData;
+        plPhysicalImpl* otherPhys = (plPhysicalImpl*)otherShape.getActor().userData;
         if (otherPhys)
         {
             otherKey = otherPhys->GetObjectKey();
@@ -127,8 +127,8 @@ class ContactReport : public NxUserContactReport
 {
     virtual void onContactNotify(NxContactPair& pair, NxU32 events)
     {
-        plPXPhysical* phys1 = (plPXPhysical*)pair.actors[0]->userData;
-        plPXPhysical* phys2 = (plPXPhysical*)pair.actors[1]->userData;
+        plPhysicalImpl* phys1 = (plPhysicalImpl*)pair.actors[0]->userData;
+        plPhysicalImpl* phys2 = (plPhysicalImpl*)pair.actors[1]->userData;
 
         // Normally, these are always valid because the avatar (who doesn't have
         // a physical) will push other physicals away before they actually touch
@@ -577,8 +577,8 @@ void plSimulationMgrImpl::Advance(float delSecs)
         plProfile_IncCount(Controllers, controllers);
     }
 
-    plProfile_IncCount(AnimatedPhysicals, plPXPhysical::fNumberAnimatedPhysicals);
-    plProfile_IncCount(AnimatedActivators, plPXPhysical::fNumberAnimatedActivators);
+    plProfile_IncCount(AnimatedPhysicals, plPhysicalImpl::fNumberAnimatedPhysicals);
+    plProfile_IncCount(AnimatedActivators, plPhysicalImpl::fNumberAnimatedActivators);
 
     fSoundMgr->Update();
 
@@ -611,7 +611,7 @@ void plSimulationMgrImpl::ISendUpdates()
 
         for (int i = 0; i < numActors; i++)
         {
-            plPXPhysical* physical = (plPXPhysical*)actors[i]->userData;
+            plPhysicalImpl* physical = (plPhysicalImpl*)actors[i]->userData;
             if (physical)
             {
                 if (physical->GetSceneNode())
@@ -710,7 +710,7 @@ int plSimulationMgrImpl::GetMaterialIdx(NxScene* scene, float friction, float re
 
 const double plSimulationMgrImpl::SynchRequest::kDefaultTime = -1000.0;
 
-void plSimulationMgrImpl::ConsiderSynch(plPXPhysical* physical, plPXPhysical* other)
+void plSimulationMgrImpl::ConsiderSynch(plPhysicalImpl* physical, plPhysicalImpl* other)
 {
     if (physical->GetProperty(plSimulationInterface::kNoSynchronize) &&
         (!other || other->GetProperty(plSimulationInterface::kNoSynchronize)))
@@ -720,7 +720,7 @@ void plSimulationMgrImpl::ConsiderSynch(plPXPhysical* physical, plPXPhysical* ot
     // Set it up so the dynamic is in 'physical'
     if (other && other->GetGroup() == plSimDefs::kGroupDynamic)
     {
-        plPXPhysical* temp = physical;
+        plPhysicalImpl* temp = physical;
         physical = other;
         other = temp;
     }
@@ -780,7 +780,7 @@ void plSimulationMgrImpl::IProcessSynchs()
         SynchRequest req = (*i).second;
         if (req.fKey->ObjectIsLoaded())
         {
-            plPXPhysical* phys = (*i).first;
+            plPhysicalImpl* phys = (*i).first;
             bool timesUp = (time >= req.fTime);
             bool allQuiet = false;//phys->GetActo GetBody()->isActive() == false;
 

@@ -49,7 +49,7 @@ class plPXPhysicalProxy;
 class plDrawableSpans;
 class hsGMaterial;
 class plSceneObject;
-class plPXPhysical;
+class plPhysicalImpl;
 class plCollideMsg;
 
 #ifndef PLASMA_EXTERNAL_RELEASE
@@ -108,7 +108,7 @@ public:
     plDrawableSpans* CreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo);
 
     // Dynamic hits
-    void AddDynamicHit(plPXPhysical* phys);
+    void AddDynamicHit(plPhysicalImpl* phys);
 
 //////////////////////////////////////////
 //Static Helper Functions
@@ -162,7 +162,7 @@ protected:
 #endif
 
     std::vector<plCollideMsg*> fQueuedCollideMsgs;
-    std::vector<plPXPhysical*> fDynamicHits;
+    std::vector<plPhysicalImpl*> fDynamicHits;
 
     NxCapsuleController* fController;
     NxActor* fActor;

@@ -60,7 +60,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plSDL/plSDL.h"
 #include "pnMessage/plSDLModifierMsg.h"
 //for hack
-#include "plPhysX/plPXPhysical.h"
+#include "plPhysX/plPhysicalImpl.h"
 #include "plPhysX/plPXPhysicalControllerCore.h"
 
 static plPhysical* GetPhysical(plSceneObject* obj)
@@ -297,7 +297,7 @@ void plExcludeRegionModifier::IMoveAvatars()
     }
     */
     
-    plPXPhysical* phys =(plPXPhysical*) GetPhysical(GetTarget());
+    plPhysicalImpl* phys =(plPhysicalImpl*) GetPhysical(GetTarget());
     if (phys)
     {
         plKey DetectorWorldKey = phys->GetWorldKey();

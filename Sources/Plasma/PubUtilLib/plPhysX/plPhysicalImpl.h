@@ -39,8 +39,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#ifndef plPXPhysical_h_inc
-#define plPXPhysical_h_inc
+#ifndef plPhysicalImpl_h_inc
+#define plPhysicalImpl_h_inc
 
 #include "plPhysical.h" 
 #include "hsMatrix44.h"
@@ -102,7 +102,7 @@ public:
     hsVectorStream* meshStream;
 };
 
-class plPXPhysical : public plPhysical
+class plPhysicalImpl : public plPhysical
 {
 public:
     friend class plSimulationMgrImpl;
@@ -113,11 +113,11 @@ public:
         kPhysRefSndGroup
     };
 
-    plPXPhysical();
-    virtual ~plPXPhysical();
+    plPhysicalImpl();
+    virtual ~plPhysicalImpl();
 
-    CLASSNAME_REGISTER(plPXPhysical);
-    GETINTERFACE_ANY(plPXPhysical, plPhysical);
+    CLASSNAME_REGISTER(plPhysicalImpl);
+    GETINTERFACE_ANY(plPhysicalImpl, plPhysical);
 
     // Export time and internal use only
     bool Init(PhysRecipe& recipe);

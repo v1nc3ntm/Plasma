@@ -39,7 +39,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
-#include "plPXPhysical.h"
+#include "plPhysicalImpl.h"
 
 #ifdef __MINGW32__
 #   define NX_CALL_CONV __cdecl
@@ -124,16 +124,16 @@ static void ClearMatrix(hsMatrix44 &m)
     m.NotIdentity();
 }
 
-int plPXPhysical::fNumberAnimatedPhysicals = 0;
-int plPXPhysical::fNumberAnimatedActivators = 0;
+int plPhysicalImpl::fNumberAnimatedPhysicals = 0;
+int plPhysicalImpl::fNumberAnimatedActivators = 0;
 
 /////////////////////////////////////////////////////////////////
 //
-// plPXPhysical IMPLEMENTATION
+// plPhysicalImpl IMPLEMENTATION
 //
 /////////////////////////////////////////////////////////////////
 
-plPXPhysical::plPXPhysical()
+plPhysicalImpl::plPhysicalImpl()
     : fSDLMod(nil)
     , fActor(nil)
     , fBoundsType(plSimDefs::kBoundsMax)
@@ -152,7 +152,7 @@ plPXPhysical::plPXPhysical()
 {
 }
 
-plPXPhysical::~plPXPhysical()
+plPhysicalImpl::~plPhysicalImpl()
 {
     SpamMsg(plSimulationMgrImpl::Log("Destroying physical %s", GetKeyName().c_str()));
 
@@ -204,7 +204,7 @@ plPXPhysical::~plPXPhysical()
     delete fSDLMod;
 }
 
-bool plPXPhysical::Init(PhysRecipe& recipe)
+bool plPhysicalImpl::Init(PhysRecipe& recipe)
 {
     bool    startAsleep = false;
     fBoundsType = recipe.bounds;
@@ -402,7 +402,7 @@ bool plPXPhysical::Init(PhysRecipe& recipe)
 /////////////////////////////////////////////////////////////////
 
 // MSGRECEIVE
-bool plPXPhysical::MsgReceive( plMessage* msg )
+bool plPhysicalImpl::MsgReceive( plMessage* msg )
 {
     if(plGenRefMsg *refM = plGenRefMsg::ConvertNoRef(msg))
     {
@@ -435,7 +435,7 @@ bool plPXPhysical::MsgReceive( plMessage* msg )
 // there's two things we hold references to: subworlds
 // and the simulation manager.
 // right now, we're only worrying about the subworlds
-bool plPXPhysical::HandleRefMsg(plGenRefMsg* refMsg)
+bool plPhysicalImpl::HandleRefMsg(plGenRefMsg* refMsg)
 {
     uint8_t refCtxt = refMsg->GetContext();
     plKey refKey = refMsg->GetRef()->GetKey();
@@ -480,7 +480,7 @@ bool plPXPhysical::HandleRefMsg(plGenRefMsg* refMsg)
     return true;
 }
 
-void plPXPhysical::IEnable(bool enable)
+void plPhysicalImpl::IEnable(bool enable)
 {
     fProps.SetBit(plSimulationInterface::kDisable, !enable);
     if (!enable)
@@ -502,7 +502,7 @@ void plPXPhysical::IEnable(bool enable)
     }
 }
 
-plPhysical& plPXPhysical::SetProperty(int prop, bool status)
+plPhysical& plPhysicalImpl::SetProperty(int prop, bool status)
 {
     if (GetProperty(prop) == status)
     {
@@ -586,7 +586,7 @@ bool CompareMatrices(const hsMatrix44 &matA, const hsMatrix44 &matB, float toler
 
 // Called after the simulation has run....sends new positions to the various scene objects
 // *** want to do this in response to an update message....
-void plPXPhysical::SendNewLocation(bool synchTransform, bool isSynchUpdate)
+void plPhysicalImpl::SendNewLocation(bool synchTransform, bool isSynchUpdate)
 {
     // we only send if:
     // - the body is active or forceUpdate is on
@@ -636,7 +636,7 @@ void plPXPhysical::SendNewLocation(bool synchTransform, bool isSynchUpdate)
     }
 }
 
-void plPXPhysical::ApplyHitForce()
+void plPhysicalImpl::ApplyHitForce()
 {
     if (fActor && fWeWereHit)
     {
@@ -646,7 +646,7 @@ void plPXPhysical::ApplyHitForce()
 }
 
 
-void plPXPhysical::ISetTransformGlobal(const hsMatrix44& l2w)
+void plPhysicalImpl::ISetTransformGlobal(const hsMatrix44& l2w)
 {
     hsAssert(fActor->isDynamic(), "Shouldn't move a static actor");
 
@@ -699,7 +699,7 @@ void plPXPhysical::ISetTransformGlobal(const hsMatrix44& l2w)
 // to avoid any confusion about this difference, we avoid referring to the 
 // subworld as "parent" and use, for example, "l2s" (local-to-sub) instead
 // of the canonical plasma "l2p" (local-to-parent)
-void plPXPhysical::IGetTransformGlobal(hsMatrix44& l2w) const
+void plPhysicalImpl::IGetTransformGlobal(hsMatrix44& l2w) const
 {
     plPXConvert::Matrix(fActor->getGlobalPose(), l2w);
 
@@ -716,16 +716,16 @@ void plPXPhysical::IGetTransformGlobal(hsMatrix44& l2w) const
     }
 }
 
-void plPXPhysical::IGetPositionSim(hsPoint3& pos) const
+void plPhysicalImpl::IGetPositionSim(hsPoint3& pos) const
 {
     pos = plPXConvert::Point(fActor->getGlobalPosition());
 }
 
-void plPXPhysical::IGetRotationSim(hsQuat& rot) const
+void plPhysicalImpl::IGetRotationSim(hsQuat& rot) const
 {
     rot = plPXConvert::Quat(fActor->getGlobalOrientationQuat());
 }
-void plPXPhysical::ISetPositionSim(const hsPoint3& pos)
+void plPhysicalImpl::ISetPositionSim(const hsPoint3& pos)
 {
     if (GetProperty(plSimulationInterface::kPhysAnim))
         fActor->moveGlobalPosition(plPXConvert::Point(pos));
@@ -733,7 +733,7 @@ void plPXPhysical::ISetPositionSim(const hsPoint3& pos)
         fActor->setGlobalPosition(plPXConvert::Point(pos));
 }
 
-void plPXPhysical::ISetRotationSim(const hsQuat& rot)
+void plPhysicalImpl::ISetRotationSim(const hsQuat& rot)
 {
     if (GetProperty(plSimulationInterface::kPhysAnim))
         fActor->moveGlobalOrientation(plPXConvert::Quat(rot));
@@ -742,7 +742,7 @@ void plPXPhysical::ISetRotationSim(const hsQuat& rot)
 }
 
 // This form is assumed by convention to be global.
-void plPXPhysical::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, bool force)
+void plPhysicalImpl::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, bool force)
 {
 //  hsAssert(real_finite(l2w.fMap[0][3]) && real_finite(l2w.fMap[1][3]) && real_finite(l2w.fMap[2][3]), "Bad transform incoming");
 
@@ -763,13 +763,13 @@ void plPXPhysical::SetTransform(const hsMatrix44& l2w, const hsMatrix44& w2l, bo
 }
 
 // GETTRANSFORM
-void plPXPhysical::GetTransform(hsMatrix44& l2w, hsMatrix44& w2l)
+void plPhysicalImpl::GetTransform(hsMatrix44& l2w, hsMatrix44& w2l)
 {
     IGetTransformGlobal(l2w);
     l2w.GetInverse(&w2l);
 }
 
-bool plPXPhysical::GetLinearVelocitySim(hsVector3& vel) const
+bool plPhysicalImpl::GetLinearVelocitySim(hsVector3& vel) const
 {
     bool result = false;
 
@@ -784,18 +784,18 @@ bool plPXPhysical::GetLinearVelocitySim(hsVector3& vel) const
     return result;
 }
 
-void plPXPhysical::SetLinearVelocitySim(const hsVector3& vel)
+void plPhysicalImpl::SetLinearVelocitySim(const hsVector3& vel)
 {
     if (fActor->isDynamic())
         fActor->setLinearVelocity(plPXConvert::Vector(vel));
 }
 
-void plPXPhysical::ClearLinearVelocity()
+void plPhysicalImpl::ClearLinearVelocity()
 {
     SetLinearVelocitySim(hsVector3(0, 0, 0));
 }
 
-bool plPXPhysical::GetAngularVelocitySim(hsVector3& vel) const
+bool plPhysicalImpl::GetAngularVelocitySim(hsVector3& vel) const
 {
     bool result = false;
     if (fActor->isDynamic())
@@ -809,7 +809,7 @@ bool plPXPhysical::GetAngularVelocitySim(hsVector3& vel) const
     return result;
 }
 
-void plPXPhysical::SetAngularVelocitySim(const hsVector3& vel)
+void plPhysicalImpl::SetAngularVelocitySim(const hsVector3& vel)
 {
     if (fActor->isDynamic())
         fActor->setAngularVelocity(plPXConvert::Vector(vel));
@@ -821,12 +821,12 @@ void plPXPhysical::SetAngularVelocitySim(const hsVector3& vel)
 //
 ///////////////////////////////////////////////////////////////
 
-plKey plPXPhysical::GetSceneNode() const
+plKey plPhysicalImpl::GetSceneNode() const
 {
     return fSceneNode;
 }
 
-void plPXPhysical::SetSceneNode(plKey newNode)
+void plPhysicalImpl::SetSceneNode(plKey newNode)
 {
     // Not Supported
 }
@@ -839,7 +839,7 @@ void plPXPhysical::SetSceneNode(plKey newNode)
 
 #include "plPXStream.h"
 
-void plPXPhysical::Read(hsStream* stream, hsResMgr* mgr)
+void plPhysicalImpl::Read(hsStream* stream, hsResMgr* mgr)
 {
     plPhysical::Read(stream, mgr);  
     ClearMatrix(fCachedLocal2World);
@@ -948,7 +948,7 @@ void plPXPhysical::Read(hsStream* stream, hsResMgr* mgr)
     fProxyGen->Init(this);
 }
 
-void plPXPhysical::Write(hsStream* stream, hsResMgr* mgr)
+void plPhysicalImpl::Write(hsStream* stream, hsResMgr* mgr)
 {
     plPhysical::Write(stream, mgr);
 
@@ -1017,7 +1017,7 @@ void plPXPhysical::Write(hsStream* stream, hsResMgr* mgr)
 // TESTING SDL
 // Send phys sendState msg to object's plPhysicalSDLModifier
 //
-bool plPXPhysical::DirtySynchState(const plString& SDLStateName, uint32_t synchFlags )
+bool plPhysicalImpl::DirtySynchState(const plString& SDLStateName, uint32_t synchFlags )
 {
     if (GetObjectKey())
     {
@@ -1032,7 +1032,7 @@ bool plPXPhysical::DirtySynchState(const plString& SDLStateName, uint32_t synchF
     return false;
 }
 
-void plPXPhysical::GetSyncState(hsPoint3& pos, hsQuat& rot, hsVector3& linV, hsVector3& angV)
+void plPhysicalImpl::GetSyncState(hsPoint3& pos, hsQuat& rot, hsVector3& linV, hsVector3& angV)
 {
     IGetPositionSim(pos);
     IGetRotationSim(rot);
@@ -1040,7 +1040,7 @@ void plPXPhysical::GetSyncState(hsPoint3& pos, hsQuat& rot, hsVector3& linV, hsV
     GetAngularVelocitySim(angV);
 }
 
-void plPXPhysical::SetSyncState(hsPoint3* pos, hsQuat* rot, hsVector3* linV, hsVector3* angV)
+void plPhysicalImpl::SetSyncState(hsPoint3* pos, hsQuat* rot, hsVector3* linV, hsVector3* angV)
 {
     bool isLoading = plNetClientApp::GetInstance()->IsLoadingInitialAgeState();
     bool isFirstIn = plNetClientApp::GetInstance()->GetJoinOrder() == 0;
@@ -1077,7 +1077,7 @@ void plPXPhysical::SetSyncState(hsPoint3* pos, hsQuat* rot, hsVector3* linV, hsV
     SendNewLocation(false, true);
 }
 
-void plPXPhysical::ExcludeRegionHack(bool cleared)
+void plPhysicalImpl::ExcludeRegionHack(bool cleared)
 {
     NxShape* shape = fActor->getShapes()[0];
     shape->setFlag(NX_TRIGGER_ON_ENTER, !cleared);
@@ -1090,7 +1090,7 @@ void plPXPhysical::ExcludeRegionHack(bool cleared)
     plPXPhysicalControllerCore::RebuildCache();
 
 }
-bool plPXPhysical::OverlapWithController(const plPXPhysicalControllerCore* controller)
+bool plPhysicalImpl::OverlapWithController(const plPXPhysicalControllerCore* controller)
 {
     NxCapsule cap;
     controller->GetWorldSpaceCapsule(cap);
@@ -1098,7 +1098,7 @@ bool plPXPhysical::OverlapWithController(const plPXPhysicalControllerCore* contr
     return shape->checkOverlapCapsule(cap);
 }
 
-bool plPXPhysical::IsDynamic() const
+bool plPhysicalImpl::IsDynamic() const
 {
     return fGroup == plSimDefs::kGroupDynamic &&
         !GetProperty(plSimulationInterface::kPhysAnim);
@@ -1153,7 +1153,7 @@ void GetConvexTri(NxConvexMeshDesc& desc, int idx, uint16_t* out)
 }
 
 // Make a visible object that can be viewed by users for debugging purposes.
-plDrawableSpans* plPXPhysical::CreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo)
+plDrawableSpans* plPhysicalImpl::CreateProxy(hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo)
 {
     plDrawableSpans* myDraw = addTo;
     hsMatrix44 l2w, unused;

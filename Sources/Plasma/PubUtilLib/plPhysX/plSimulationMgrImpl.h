@@ -46,7 +46,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnKeyedObject/hsKeyedObject.h"
 #include "hsTemplates.h"
 
-class plPXPhysical;
+class plPhysicalImpl;
 class plLOSDispatch;
 class plStatusLog;
 class plPhysicsSoundMgr;
@@ -80,7 +80,7 @@ public:
 
     // We've detected a collision, which may be grounds for synchronizing the involved
     // physicals over the network.
-    void ConsiderSynch(plPXPhysical *physical, plPXPhysical *other);
+    void ConsiderSynch(plPhysicalImpl *physical, plPhysicalImpl *other);
 
     NxPhysicsSDK* GetSDK() const { return fSDK; }
     NxScene* GetScene(plKey world);
@@ -150,7 +150,7 @@ protected:
 
     // All currently pending synch requests. Keyed by the physical in question
     // so we can quickly eliminate redundant requests, which are very common.
-    typedef std::map<plPXPhysical*, SynchRequest> PhysSynchMap;
+    typedef std::map<plPhysicalImpl*, SynchRequest> PhysSynchMap;
     PhysSynchMap fPendingSynchs;
 
     plStatusLog *fLog;

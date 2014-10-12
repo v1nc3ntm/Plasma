@@ -41,7 +41,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plPXPhysicalControllerCore.h"
 #include "plSimulationMgrImpl.h"
-#include "plPXPhysical.h"
+#include "plPhysicalImpl.h"
 #include "plPXConvert.h"
 #include "pnSceneObject/plSimulationInterface.h"
 #include "pnSceneObject/plSceneObject.h"
@@ -84,7 +84,7 @@ public:
     {
         plPXPhysicalControllerCore* controller = (plPXPhysicalControllerCore*)hit.controller->getUserData();
         NxActor& actor = hit.shape->getActor();
-        plPXPhysical* phys = (plPXPhysical*)actor.userData;
+        plPhysicalImpl* phys = (plPhysicalImpl*)actor.userData;
         hsVector3 normal = plPXConvert::Vector(hit.worldNormal);
 
 #ifndef PLASMA_EXTERNAL_RELEASE
@@ -514,7 +514,7 @@ plDrawableSpans* plPXPhysicalControllerCore::CreateProxy(hsGMaterial* mat, hsTAr
     return myDraw;
 }
 
-void plPXPhysicalControllerCore::AddDynamicHit(plPXPhysical* phys)
+void plPXPhysicalControllerCore::AddDynamicHit(plPhysicalImpl* phys)
 {
     int numHits = fDynamicHits.size();
     for (int i = 0; i < numHits; ++i)
@@ -674,7 +674,7 @@ void plPXPhysicalControllerCore::IInformDetectors(bool entering)
     int numCollided = scene->overlapCapsuleShapes(capsule, NX_ALL_SHAPES, kNumShapes, shapes, NULL, kDetectorFlag, NULL, true);
     for (int i = 0; i < numCollided; ++i)
     {
-        plPXPhysical* physical = (plPXPhysical*)shapes[i]->getActor().userData;
+        plPhysicalImpl* physical = (plPhysicalImpl*)shapes[i]->getActor().userData;
         if (physical && physical->DoReportOn(plSimDefs::kGroupAvatar))
         {
             plCollideMsg* msg = new plCollideMsg();
@@ -818,7 +818,7 @@ void plPXPhysicalControllerCore::IProcessDynamicHits()
     int numHits = fDynamicHits.size();
     if (numHits)
     {
-        plPXPhysical* phys;
+        plPhysicalImpl* phys;
         plSimulationMgrImpl* simMgr = plSimulationMgrImpl::GetInstance();
         for (int i = 0; i < numHits; ++i)
         {
