@@ -56,10 +56,18 @@ find_package(Opus)
 find_package(CURL REQUIRED)
 find_package(Freetype)
 
-if(WIN32)
-    find_package(PhysX REQUIRED)  #TODO: Not required if we aren't building the client
+# TODO: Not required if we aren't building the client
+option(USE_PHYSX "Use PhysX physical implementation instand of Bullet")
+if (USE_PHYSX)
+    find_package(PhysX REQUIRED)
+    add_definitions("-DUSE_PHYSX")
+else ()
+    find_package(Bullet REQUIRED)
+endif ()
+
+if (WIN32)
     find_package(DirectX REQUIRED)
-endif(WIN32)
+endif ()
 
 if(VPX_FOUND AND Opus_FOUND)
     set(MOVIE_AVAILABLE TRUE)

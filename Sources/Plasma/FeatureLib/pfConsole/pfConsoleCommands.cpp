@@ -5535,9 +5535,10 @@ PF_CONSOLE_CMD( SceneObject, Detach,            // Group name, Function name
 
 #ifndef LIMIT_CONSOLE_COMMANDS
 
-#include "plPhysX/plPXPhysicalControllerCore.h"
-
 PF_CONSOLE_GROUP( Physics )
+
+#ifdef USE_PHYSX
+#include "plPhysX/plPXPhysicalControllerCore.h"
 
 PF_CONSOLE_CMD( Physics, Rebuild, "", "Rebuilds the avatars collision cache")
 {
@@ -5771,13 +5772,6 @@ PF_CONSOLE_CMD( Physics, ClearLog, "", "Clear the physics log.")
     plSimulationMgrImpl::ClearLog();
 }
 */
-#include "plPhysical/plPhysicalSDLModifier.h"
-
-PF_CONSOLE_CMD(Physics, LogSDL, "int level", "Turn logging of physics SDL state on or off. 0=off 1=send/receive only 2=any attempt")
-{
-    int level = params[0];
-    plPhysicalSDLModifier::SetLogLevel(level);
-}
 
 #include "plPhysX/plSimulationMgrImpl.h"
 PF_CONSOLE_CMD(Physics, ExtraProfile, "", "Toggle extra simulation profiling")
@@ -5848,6 +5842,15 @@ PF_CONSOLE_CMD( Physics, PlayPhysicsSounds, "bool b", "Turn physics sounds on/of
     plHKCollision::TogglePhysicsSounds(b);
 }
 */
+#endif // USE_PHYSX
+
+#include "plPhysical/plPhysicalSDLModifier.h"
+PF_CONSOLE_CMD(Physics, LogSDL, "int level", "Turn logging of physics SDL state on or off. 0=off 1=send/receive only 2=any attempt")
+{
+    int level = params[0];
+    plPhysicalSDLModifier::SetLogLevel(level);
+}
+
 #endif // LIMIT_CONSOLE_COMMANDS
 
 

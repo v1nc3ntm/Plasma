@@ -25,7 +25,9 @@ set(plPhysX_HEADERS
     plSimulationMgrImpl.h
 )
 
-add_library(plPhysX STATIC ${plPhysX_SOURCES} ${plPhysX_HEADERS})
+if (USE_PHYSX)
+    add_library(plPhysX STATIC ${plPhysX_SOURCES} ${plPhysX_HEADERS})
+endif ()
 
 source_group("Source Files" FILES ${plPhysX_SOURCES})
 source_group("Header Files" FILES ${plPhysX_HEADERS})
