@@ -251,6 +251,37 @@ bool hsMatrix44::operator==(const hsMatrix44& ss) const
     return true;
 }
 
+namespace {
+    template<class T> constexpr T diff(T val1, T val2)
+    {
+        return val1 > val2 ? val1 - val2 : val2 - val1;
+    }
+}
+
+bool hsMatrix44::Compare(const hsMatrix44& other, float tolerance) const
+{
+    return 
+        diff(fMap[0][0], other.fMap[0][0]) < tolerance &&
+        diff(fMap[0][1], other.fMap[0][1]) < tolerance &&
+        diff(fMap[0][2], other.fMap[0][2]) < tolerance &&
+        diff(fMap[0][3], other.fMap[0][3]) < tolerance &&
+
+        diff(fMap[1][0], other.fMap[1][0]) < tolerance &&
+        diff(fMap[1][1], other.fMap[1][1]) < tolerance &&
+        diff(fMap[1][2], other.fMap[1][2]) < tolerance &&
+        diff(fMap[1][3], other.fMap[1][3]) < tolerance &&
+
+        diff(fMap[2][0], other.fMap[2][0]) < tolerance &&
+        diff(fMap[2][1], other.fMap[2][1]) < tolerance &&
+        diff(fMap[2][2], other.fMap[2][2]) < tolerance &&
+        diff(fMap[2][3], other.fMap[2][3]) < tolerance &&
+
+        diff(fMap[3][0], other.fMap[3][0]) < tolerance &&
+        diff(fMap[3][1], other.fMap[3][1]) < tolerance &&
+        diff(fMap[3][2], other.fMap[3][2]) < tolerance &&
+        diff(fMap[3][3], other.fMap[3][3]) < tolerance;
+}
+
 hsMatrix44& hsMatrix44::Scale(const hsVector3* scale)
 {
     fMap[0][0] *= scale->fX;

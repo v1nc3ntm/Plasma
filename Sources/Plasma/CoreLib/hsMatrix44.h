@@ -144,6 +144,7 @@ struct hsMatrix44 {
 
     bool operator==(const hsMatrix44& ss) const;
     bool operator!=(const hsMatrix44& ss) const { return !(ss == *this); }
+    bool Compare(const hsMatrix44& other, float tolerance) const;
 
     void Read(hsStream *stream);
     void Write(hsStream *stream);
