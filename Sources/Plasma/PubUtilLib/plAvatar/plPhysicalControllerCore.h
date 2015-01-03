@@ -72,6 +72,11 @@ struct plControllerSweepRecord
     hsVector3 Normal;
 };
 
+/**
+ * Controlable physical entity.
+ * 
+ * \see \ref plPhysical 
+ */
 class plPhysicalControllerCore
 {
 public:
@@ -191,10 +196,13 @@ protected:
     bool fEnableChanged;
 };
 
+/**
+ * Common interface of plPhysicalControlerCore's mouvement strategies
+ */
 class plMovementStrategy
 {
 public:
-    plMovementStrategy(plPhysicalControllerCore* controller);
+    plMovementStrategy(plPhysicalControllerCore & controller);
     virtual ~plMovementStrategy() { }
 
     virtual void Apply(float delSecs) = 0;
@@ -205,13 +213,14 @@ public:
     virtual bool IsKinematic() { return true; }
 
 protected:
-    plPhysicalControllerCore* fController;
+    plPhysicalControllerCore & fController;
 };
+
 
 class plAnimatedMovementStrategy : public plMovementStrategy
 {
 public:
-    plAnimatedMovementStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller);
+    plAnimatedMovementStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller);
     virtual ~plAnimatedMovementStrategy() { }
 
     virtual void RecalcVelocity(double timeNow, float elapsed, bool useAnim = true);
@@ -222,16 +231,16 @@ private:
     void IRecalcLinearVelocity(float elapsed, hsMatrix44 &prevMat, hsMatrix44 &curMat);
     void IRecalcAngularVelocity(float elapsed, hsMatrix44 &prevMat, hsMatrix44 &curMat);
 
-    plAGApplicator* fRootApp;
-    hsVector3	fAnimLinearVel;
-    float	fAnimAngularVel;
-    float	fTurnStr;
+    plAGApplicator &    fRootApp;
+    hsVector3           fAnimLinearVel;
+    float               fAnimAngularVel;
+    float               fTurnStr;
 };
 
 class plWalkingStrategy : public plAnimatedMovementStrategy
 {
 public:
-    plWalkingStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller);
+    plWalkingStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller);
     virtual ~plWalkingStrategy() { }
 
     virtual void Apply(float delSecs);
@@ -283,7 +292,7 @@ protected:
 class plSwimStrategy : public plAnimatedMovementStrategy
 {
 public:
-    plSwimStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller);
+    plSwimStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller);
     virtual ~plSwimStrategy() { }
 
     virtual void Apply(float delSecs);
@@ -311,7 +320,7 @@ protected:
 class plDynamicWalkingStrategy : public plWalkingStrategy
 {
 public:
-    plDynamicWalkingStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller);
+    plDynamicWalkingStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller);
     virtual ~plDynamicWalkingStrategy() { }
 
     virtual void Apply(float delSecs);

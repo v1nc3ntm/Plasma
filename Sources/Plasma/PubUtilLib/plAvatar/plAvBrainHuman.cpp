@@ -183,7 +183,7 @@ void plAvBrainHuman::Activate(plArmatureModBase *avMod)
         plSceneObject* avObj = fArmature->GetTarget(0);
         plAGModifier* agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
         plPhysicalControllerCore* controller = avMod->GetController();
-        fWalkingStrategy = new plWalkingStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+        fWalkingStrategy = new plWalkingStrategy(*agMod->GetApplicator(kAGPinTransform), *controller);
         controller->SetMovementStrategy(fWalkingStrategy);
     }
     
@@ -477,7 +477,7 @@ bool plAvBrainHuman::MsgReceive(plMessage * msg)
             plSceneObject* avObj = fArmature->GetTarget(0);
             plAGModifier* agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
             plPhysicalControllerCore* controller = fAvMod->GetController();
-            fWalkingStrategy = new plDynamicWalkingStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+            fWalkingStrategy = new plDynamicWalkingStrategy(*agMod->GetApplicator(kAGPinTransform), *controller);
             controller->SetMovementStrategy(fWalkingStrategy);
         }
         else
@@ -487,7 +487,7 @@ bool plAvBrainHuman::MsgReceive(plMessage * msg)
             plSceneObject* avObj = fArmature->GetTarget(0);
             plAGModifier* agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
             plPhysicalControllerCore* controller = fAvMod->GetController();
-            fWalkingStrategy = new plWalkingStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+            fWalkingStrategy = new plWalkingStrategy(*agMod->GetApplicator(kAGPinTransform), *controller);
             controller->SetMovementStrategy(fWalkingStrategy);
         }
     }
@@ -883,7 +883,7 @@ bool plAvBrainHuman::LeaveAge()
         delete fWalkingStrategy;
         plSceneObject* avObj = fArmature->GetTarget(0);
         plAGModifier* agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
-        fWalkingStrategy = new plWalkingStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+        fWalkingStrategy = new plWalkingStrategy(*agMod->GetApplicator(kAGPinTransform), *controller);
     }
 
     fWalkingStrategy->Reset(true);

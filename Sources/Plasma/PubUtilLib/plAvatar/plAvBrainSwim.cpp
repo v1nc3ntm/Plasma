@@ -468,7 +468,7 @@ void plAvBrainSwim::IStartSwimming(bool is2D)
         plSceneObject * avObj = fArmature->GetTarget(0);
         plAGModifier *agMod = const_cast<plAGModifier*>(plAGModifier::ConvertNoRef(FindModifierByClass(avObj, plAGModifier::Index())));
         plPhysicalControllerCore *controller = fAvMod->GetController();
-        fSwimStrategy = new plSwimStrategy(agMod->GetApplicator(kAGPinTransform), controller);
+        fSwimStrategy = new plSwimStrategy(*agMod->GetApplicator(kAGPinTransform), *controller);
     }
 
     fSwimStrategy->Reset(false);

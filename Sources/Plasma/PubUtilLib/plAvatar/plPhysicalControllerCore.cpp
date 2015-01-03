@@ -244,16 +244,16 @@ void plPhysicalControllerCore::ISendCorrectionMessages(bool dirtySynch)
 
 
 // Movement Strategy
-plMovementStrategy::plMovementStrategy(plPhysicalControllerCore* controller)
+plMovementStrategy::plMovementStrategy(plPhysicalControllerCore & controller)
     : fController(controller)
 {
 }
 
-void plMovementStrategy::Reset(bool newAge) { fController->SetMovementStrategy(this); }
+void plMovementStrategy::Reset(bool newAge) { fController.SetMovementStrategy(this); }
 
 
 // Animated Movement Strategy
-plAnimatedMovementStrategy::plAnimatedMovementStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller)
+plAnimatedMovementStrategy::plAnimatedMovementStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller)
     : plMovementStrategy(controller),
     fRootApp(rootApp),
     fAnimLinearVel(0.0f, 0.0f, 0.0f),
@@ -268,8 +268,10 @@ void plAnimatedMovementStrategy::RecalcVelocity(double timeNow, float elapsed, b
     {
         // while you may think it would be correct to cache this, what we're actually asking is "what would the animation's
         // position be at the previous time given its *current* parameters (particularly blends)"
-        hsMatrix44 prevMat = ((plMatrixChannel *)fRootApp->GetChannel())->Value(timeNow - elapsed, true);
-        hsMatrix44 curMat = ((plMatrixChannel *)fRootApp->GetChannel())->Value(timeNow, true);
+        plMatrixChannel * channel = plMatrixChannel::ConvertNoRef(fRootApp.GetChannel());
+        hsAssert(channel, "The channel of a plAnimatedMovementStrategy's plAGApplicator must be a plMatrixChannel");
+        hsMatrix44 prevMat = channel->Value(timeNow - elapsed, true);
+        hsMatrix44 curMat = channel->Value(timeNow, true);
         
         IRecalcLinearVelocity(elapsed, prevMat, curMat);
         IRecalcAngularVelocity(elapsed, prevMat, curMat);
@@ -283,10 +285,10 @@ void plAnimatedMovementStrategy::RecalcVelocity(double timeNow, float elapsed, b
     // Update controller rotation
     float zRot = fAnimAngularVel + fTurnStr;
     if (fabs(zRot) > 0.0001f)
-        fController->IncrementAngle(zRot * elapsed);
+        fController.IncrementAngle(zRot * elapsed);
 
     // Update controller velocity
-    fController->SetLinearVelocity(fAnimLinearVel);
+    fController.SetLinearVelocity(fAnimLinearVel);
 }
 
 void plAnimatedMovementStrategy::IRecalcLinearVelocity(float elapsed, hsMatrix44 &prevMat, hsMatrix44 &curMat)
@@ -372,7 +374,7 @@ void plAnimatedMovementStrategy::IRecalcAngularVelocity(float elapsed, hsMatrix4
 
 
 // Walking Strategy
-plWalkingStrategy::plWalkingStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller)
+plWalkingStrategy::plWalkingStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller)
     : plAnimatedMovementStrategy(rootApp, controller),
     fSlidingNormals(),
     fImpactVelocity(0.0f, 0.0f, 0.0f),
@@ -390,8 +392,8 @@ plWalkingStrategy::plWalkingStrategy(plAGApplicator* rootApp, plPhysicalControll
 
 void plWalkingStrategy::Apply(float delSecs)
 {
-    hsVector3 velocity = fController->GetLinearVelocity();
-    hsVector3 achievedVelocity = fController->GetAchievedLinearVelocity();
+    hsVector3 velocity = fController.GetLinearVelocity();
+    hsVector3 achievedVelocity = fController.GetAchievedLinearVelocity();
 
     // Add in gravity if the avatar's z velocity isn't being set explicitly
     if (fabs(velocity.fZ) < 0.001f)
@@ -464,17 +466,17 @@ void plWalkingStrategy::Apply(float delSecs)
     hsVector3 displacement = velocity * delSecs;
 
     // Reset vars and move the controller
-    fController->SetPushingPhysical(nil);
-    fController->SetFacingPushingPhysical(false);
+    fController.SetPushingPhysical(nil);
+    fController.SetFacingPushingPhysical(false);
     fGroundHit = fFalseGround = fHeadHit = false;
     fSlidingNormals.SetCount(0);
 
     unsigned int collideResults = 0;
     unsigned int collideFlags = 1<<plSimDefs::kGroupStatic | 1<<plSimDefs::kGroupAvatarBlocker | 1<<plSimDefs::kGroupDynamic;
-    if (!fController->IsSeeking())
+    if (!fController.IsSeeking())
         collideFlags |= (1<<plSimDefs::kGroupExcludeRegion);
 
-    fController->Move(displacement, collideFlags, collideResults);
+    fController.Move(displacement, collideFlags, collideResults);
 
     if ((!fGroundHit) && (collideResults & kBottom))
         fFalseGround = true;
@@ -492,20 +494,20 @@ void plWalkingStrategy::Update(float delSecs)
         if (fHeadHit)
         {
             // If we're airborne and hit our head, override achieved velocity to avoid being shoved sideways
-            hsVector3 velocity = fController->GetLinearVelocity();
-            hsVector3 achievedVelocity = fController->GetAchievedLinearVelocity();
+            hsVector3 velocity = fController.GetLinearVelocity();
+            hsVector3 achievedVelocity = fController.GetAchievedLinearVelocity();
 
             achievedVelocity.fX = velocity.fX;
             achievedVelocity.fY = velocity.fY;
             if (achievedVelocity.fZ > 0.0f)
                 achievedVelocity.fZ = 0.0f;
 
-            fController->OverrideAchievedLinearVelocity(achievedVelocity);
+            fController.OverrideAchievedLinearVelocity(achievedVelocity);
         }
     }
 
     hsVector3 zeroVelocity(0.f, 0.f, 0.f);
-    fController->SetLinearVelocity(zeroVelocity);
+    fController.SetLinearVelocity(zeroVelocity);
 
     if (!fHitGroundInThisAge && IsOnGround())
         fHitGroundInThisAge = true;
@@ -521,9 +523,9 @@ void plWalkingStrategy::Update(float delSecs)
     else
     {
         fImpactTime = fTimeInAir;
-        fImpactVelocity = fController->GetAchievedLinearVelocity();
+        fImpactVelocity = fController.GetAchievedLinearVelocity();
         // convert orientation from subworld to avatar-local coordinates
-        fImpactVelocity = (hsVector3)fController->GetLocalRotation().Rotate(&fImpactVelocity);
+        fImpactVelocity = (hsVector3)fController.GetLocalRotation().Rotate(&fImpactVelocity);
         fClearImpact = false;
     }
 }
@@ -580,15 +582,15 @@ bool plWalkingStrategy::EnableControlledFlight(bool status)
     return status;
 }
 
-plPhysical* plWalkingStrategy::GetPushingPhysical() const { return fController->GetPushingPhysical(); }
-bool plWalkingStrategy::GetFacingPushingPhysical() const { return fController->GetFacingPushingPhysical(); }
+plPhysical* plWalkingStrategy::GetPushingPhysical() const { return fController.GetPushingPhysical(); }
+bool plWalkingStrategy::GetFacingPushingPhysical() const { return fController.GetFacingPushingPhysical(); }
 
 const float plWalkingStrategy::kAirTimeThreshold = 0.1f;
 const float plWalkingStrategy::kControlledFlightThreshold = 1.0f;
 
 
 // Swim Strategy
-plSwimStrategy::plSwimStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller)
+plSwimStrategy::plSwimStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller)
     : plAnimatedMovementStrategy(rootApp, controller),
     fBuoyancy(0.0f),
     fSurfaceHeight(0.0f),
@@ -600,8 +602,8 @@ plSwimStrategy::plSwimStrategy(plAGApplicator* rootApp, plPhysicalControllerCore
 
 void plSwimStrategy::Apply(float delSecs)
 {
-    hsVector3 velocity = fController->GetLinearVelocity();
-    hsVector3 achievedVelocity = fController->GetAchievedLinearVelocity();
+    hsVector3 velocity = fController.GetLinearVelocity();
+    hsVector3 achievedVelocity = fController.GetAchievedLinearVelocity();
 
     IAdjustBuoyancy();
 
@@ -621,10 +623,10 @@ void plSwimStrategy::Apply(float delSecs)
     {
         float angCurrent = 0.0f;
         hsVector3 linCurrent(0.0f, 0.0f, 0.0f);
-        fCurrentRegion->GetCurrent(fController, linCurrent, angCurrent, delSecs);
+        fCurrentRegion->GetCurrent(&fController, linCurrent, angCurrent, delSecs);
 
         if (fabs(angCurrent) > 0.0001f)
-            fController->IncrementAngle(angCurrent * delSecs);
+            fController.IncrementAngle(angCurrent * delSecs);
 
         velocity += linCurrent;
 
@@ -639,16 +641,16 @@ void plSwimStrategy::Apply(float delSecs)
     hsVector3 displacement = velocity * delSecs;
 
     // Reset vars and move controller //
-    fController->SetPushingPhysical(nil);
-    fController->SetFacingPushingPhysical(false);
+    fController.SetPushingPhysical(nil);
+    fController.SetFacingPushingPhysical(false);
     fHadContacts = fOnGround = false;
 
     unsigned int collideResults = 0;
     unsigned int collideFlags = 1<<plSimDefs::kGroupStatic | 1<<plSimDefs::kGroupAvatarBlocker | 1<<plSimDefs::kGroupDynamic;
-    if (!fController->IsSeeking())
+    if (!fController.IsSeeking())
         collideFlags |= (1<<plSimDefs::kGroupExcludeRegion);
 
-    fController->Move(displacement, collideFlags, collideResults);
+    fController.Move(displacement, collideFlags, collideResults);
 
     if ((collideResults & kBottom) || (collideResults & kSides))
         fHadContacts = true;
@@ -683,7 +685,7 @@ void plSwimStrategy::IAdjustBuoyancy()
     }
 
     hsPoint3 posSim;
-    fController->GetPositionSim(posSim);
+    fController.GetPositionSim(posSim);
     float depth = fSurfaceHeight - posSim.fZ;
 
     // this isn't a smooth transition but hopefully it won't be too obvious
@@ -697,15 +699,15 @@ void plSwimStrategy::IAdjustBuoyancy()
 
 
 // Dynamic Walking Strategy
-plDynamicWalkingStrategy::plDynamicWalkingStrategy(plAGApplicator* rootApp, plPhysicalControllerCore* controller)
+plDynamicWalkingStrategy::plDynamicWalkingStrategy(plAGApplicator & rootApp, plPhysicalControllerCore & controller)
     : plWalkingStrategy(rootApp, controller)
 {
 }
 
 void plDynamicWalkingStrategy::Apply(float delSecs)
 {
-    hsVector3 velocity = fController->GetLinearVelocity();
-    hsVector3 achievedVelocity = fController->GetAchievedLinearVelocity();
+    hsVector3 velocity = fController.GetLinearVelocity();
+    hsVector3 achievedVelocity = fController.GetAchievedLinearVelocity();
 
     // Add in gravity if the avatar's z velocity isn't being set explicitly
     if (fabs(velocity.fZ) < 0.001f)
@@ -722,15 +724,15 @@ void plDynamicWalkingStrategy::Apply(float delSecs)
     if (velocity.fZ < kTerminalVelocity)
         velocity.fZ = kTerminalVelocity;
 
-    fController->SetPushingPhysical(nil);
-    fController->SetFacingPushingPhysical(false);
+    fController.SetPushingPhysical(nil);
+    fController.SetFacingPushingPhysical(false);
     fGroundHit = fFalseGround = false;
 
     float groundZVelocity;
     if (ICheckForGround(groundZVelocity))
         velocity.fZ += groundZVelocity;
 
-    fController->SetLinearVelocitySim(velocity);
+    fController.SetLinearVelocitySim(velocity);
 }
 
 bool plDynamicWalkingStrategy::ICheckForGround(float& zVelocity)
@@ -739,14 +741,14 @@ bool plDynamicWalkingStrategy::ICheckForGround(float& zVelocity)
     uint32_t collideFlags = 1<<plSimDefs::kGroupStatic | 1<<plSimDefs::kGroupAvatarBlocker | 1<<plSimDefs::kGroupDynamic;
 
     hsPoint3 startPos;
-    fController->GetPositionSim(startPos);
+    fController.GetPositionSim(startPos);
     hsPoint3 endPos = startPos;
 
     // Set sweep length
     startPos.fZ += 0.05f;
     endPos.fZ -= 0.05f;
 
-    int possiblePlatformCount = fController->SweepControllerPath(startPos, endPos, true, true, collideFlags, groundHits);
+    int possiblePlatformCount = fController.SweepControllerPath(startPos, endPos, true, true, collideFlags, groundHits);
     if (possiblePlatformCount)
     {
         zVelocity = -FLT_MAX;
