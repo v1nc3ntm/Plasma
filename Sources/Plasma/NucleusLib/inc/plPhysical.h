@@ -53,36 +53,42 @@ class plPhysicalSndGroup;
 class plDrawableSpans;
 class hsGMaterial;
 
-// Primary interface object for physics functionality. A physical corresponds to
-// a single rigid body in a simulation. (Note that there can be multiple
-// simulations.) The plPhysical is reached through the simulation interface on a
-// plSceneObject
-//
-// Any function that ends with 'Sim' gets or sets a simulation space value.  If
-// the physical is in the main world, this will be the same as a global value,
-// but if it's in a subworld, it will be relative to that.
+/**
+ * Primary interface object for physics functionality.
+ * 
+ * A physical corresponds to a single rigid body in a simulation.
+ * (Note that there can be multiple simulations.)
+ * The plPhysical is reached through the simulation interface on a
+ * plSceneObject
+ * 
+ * Any function that ends with 'Sim' gets or sets a simulation space value.
+ * If the physical is in the main world, this will be the same as a
+ * global value, but if it's in a subworld, it will be relative to that.
+ */
+
 class plPhysical : public plSynchedObject
 {
 public:
     CLASSNAME_REGISTER(plPhysical);
     GETINTERFACE_ANY(plPhysical, plSynchedObject);
 
-    virtual plPhysical& SetProperty(int prop, bool b) = 0;
-    virtual bool        GetProperty(int prop) const = 0;
+    
+    virtual plPhysical & SetProperty (int prop, bool b) = 0;
+    virtual bool         GetProperty (int prop) const = 0;
 
-    virtual void SetObjectKey(plKey oKey) = 0;
-    virtual plKey GetObjectKey() const = 0;
+    virtual void  SetObjectKey (plKey oKey) = 0;
+    virtual plKey GetObjectKey () const = 0;
 
     // These two should only be called by the SceneNode
-    virtual void SetSceneNode(plKey node) = 0;
-    virtual plKey GetSceneNode() const = 0;
+    virtual void  SetSceneNode (plKey node) = 0;
+    virtual plKey GetSceneNode () const = 0;
 
-    virtual bool GetLinearVelocitySim(hsVector3& vel) const = 0;
-    virtual void SetLinearVelocitySim(const hsVector3& vel) = 0;
-    virtual void ClearLinearVelocity() = 0;
+    virtual bool GetLinearVelocitySim (hsVector3& vel) const = 0;
+    virtual void SetLinearVelocitySim (const hsVector3& vel) = 0;
+    virtual void  ClearLinearVelocity () = 0;
 
-    virtual bool GetAngularVelocitySim(hsVector3& vel) const = 0;
-    virtual void SetAngularVelocitySim(const hsVector3& vel) = 0;
+    virtual bool GetAngularVelocitySim (hsVector3& vel) const = 0;
+    virtual void SetAngularVelocitySim (const hsVector3& vel) = 0;
 
     virtual void SetHitForce(const hsVector3& force, const hsPoint3& pos)=0;
     /** Standard plasma transform interface, in global coordinates by convention.

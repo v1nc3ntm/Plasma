@@ -104,14 +104,14 @@ public:
     
 private:
     friend class plLOSDispatch;
-    hsPoint3                fFrom;
-    hsPoint3                fTo;
-    plKey                   fWorldKey;          // Force the query to happen in a particular subworld.
-    plSimDefs::plLOSDB      fRequestType;       // which database are we probing?
-    plSimDefs::plLOSDB      fCullDB;            // if we find a hit, see if anything in this DB blocks it.
-    TestType                fTestType;          // testing closest hit or just any?
-    ReportType              fReportType;        // reporting hits, misses, or both?
-    uint32_t                  fRequestID;
+    hsPoint3                fFrom;              ///< Origin point for the raycast.
+    hsPoint3                fTo;                ///< Destination point for the raycast.
+    plKey                   fWorldKey;          ///< Force the query to happen in a particular subworld. if nil, use the avatar subworld.
+    plSimDefs::plLOSDB      fRequestType;       ///< which database are we probing?
+    plSimDefs::plLOSDB      fCullDB;            ///< if we find a hit, see if anything in this DB blocks it.
+    TestType                fTestType;          ///< testing closest hit or just any?
+    ReportType              fReportType;        ///< reporting hits, misses, or both?
+    uint32_t                fRequestID;         ///< user defined ID.
 };
 
 #endif // plLOSRequestMsg_inc

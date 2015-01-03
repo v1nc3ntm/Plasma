@@ -45,38 +45,27 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 namespace plSimDefs
 {
-    // Groups are used to determine what a physical collides with, and what a
-    // detector detects
+    /** Groups are used to determine what a physical collides with,
+        and what a detector detects */
     enum Group
     {
-        // A physical that blocks avatars and dynamics
-        kGroupStatic,
-        // Blocks only avatars
-        kGroupAvatarBlocker,
-        // Blocks only dynamics
-        kGroupDynamicBlocker,
-        // No physical should actually be set to this, since the avatar is
-        // controlled by a special kind of physical.  However, you can use this
-        // for detecting.
-        kGroupAvatar,
-        // A physical that can be pushed around by the avatar or other dynamics
-        kGroupDynamic,
-        // A physical that doesn't block anything, but reports on any physical
-        // that enters it
-        kGroupDetector,
-        // Blocks nothing, for los checks only
-        kGroupLOSOnly,
-        //kExcludeRegion setting up so only blocks avatars and only when not in seek mode
-        kGroupExcludeRegion,
-        // A kinematic avatar only interacts with dynamics and detectors
-        kGroupAvatarKinematic,
-        // Just for error checking
-        kGroupMax
+        kGroupStatic,           ///< A physical that blocks avatars and dynamics
+        kGroupAvatarBlocker,    ///< Blocks only avatars
+        kGroupDynamicBlocker,   ///< Blocks only dynamics
+        kGroupAvatar,           /**< No physical should actually be set to this,
+                                     since the avatar is controlled by a special kind of physical.
+                                     However, you can use this for detecting. */
+        kGroupDynamic,          ///< A physical that can be pushed around by the avatar or other dynamics
+        kGroupDetector,         /**< A physical that doesn't block anything,
+                                     but reports on any physical that enters it */
+        kGroupLOSOnly,          ///< Blocks nothing, for los checks only
+        kGroupExcludeRegion,    ///< kExcludeRegion setting up so only blocks avatars and only when not in seek mode
+        kGroupAvatarKinematic,  ///< A kinematic avatar only interacts with dynamics and detectors
+        kGroupMax               ///< Just for error checking
     };
 
     /** Different types of line-of-sight requests. */
-    enum LOSReqType
-    {
+    enum LOSReqType : unsigned short {
         // these are MASKS -- keep powers of two
         kLOS_IgnoreCameraRequest    = 0x1,
         kLOS_IgnoreUIRequest        = 0x2,
@@ -87,29 +76,29 @@ namespace plSimDefs
 
     /** Different types of physics shapes. In most cases they dictate how we intepret
         the raw vertices. In some cases (sphere) they explain why there aren't any vertices */
-    enum Bounds {
-        kBoxBounds      =   0x01,   // bounding box
-        kSphereBounds,              // bounding sphere
-        kHullBounds,                // convex hull
-        kProxyBounds,               // use alternate proxy geometry
-        kExplicitBounds,            // use the primary geometry
-        kNumBounds,                 // the number of bounds types
+    enum Bounds : unsigned char {
+        kBoxBounds      =   0x01,   ///< bounding box
+        kSphereBounds,              ///< bounding sphere
+        kHullBounds,                ///< convex hull
+        kProxyBounds,               ///< use alternate proxy geometry
+        kExplicitBounds,            ///< use the primary geometry
+        kNumBounds,                 ///< the number of bounds types
         
         kBoundsMax      =   0xff    // force 8-bit
     };
     
-    enum plLOSDB {
+    enum plLOSDB : unsigned short {
         kLOSDBNone              =   0x0000,
 
-        kLOSDBUIBlockers        =   0x0001,     // things that block ui probes
-        kLOSDBUIItems           =   0x0002,     // ui items -- we check these first for a hit before checking blockers
-        kLOSDBCameraBlockers    =   0x0004,     // things that block camera probes
-        kLOSDBCustom            =   0x0008,     // special things. only the user knows
-        kLOSDBLocalAvatar       =   0x0010,     // yes, this is silly. it's transitional :)
-        kLOSDBShootableItems    =   0x0020,     // shootable items, like from the VaporMiner gun
+        kLOSDBUIBlockers        =   0x0001,     ///< things that block ui probes
+        kLOSDBUIItems           =   0x0002,     ///< ui items -- we check these first for a hit before checking blockers
+        kLOSDBCameraBlockers    =   0x0004,     ///< things that block camera probes
+        kLOSDBCustom            =   0x0008,     ///< special things. only the user knows
+        kLOSDBLocalAvatar       =   0x0010,     ///< yes, this is silly. it's transitional :)
+        kLOSDBShootableItems    =   0x0020,     ///< shootable items, like from the VaporMiner gun
 
-        kLOSDBAvatarWalkable    =   0x0040,     // stuff the avatar is expected to walk on. Used to prevent sliding and allow
-                                                // jumping. All terrain automatically goes here.
+        kLOSDBAvatarWalkable    =   0x0040,     /**< stuff the avatar is expected to walk on. Used to prevent sliding and allow
+                                                     jumping. All terrain automatically goes here. */
         
         kLOSDBSwimRegion        =   0x0080,
 
