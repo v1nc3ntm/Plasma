@@ -6,12 +6,14 @@ include_directories("../../PubUtilLib")
 include_directories(${BULLET_INCLUDE_DIRS})
 
 set(plBullet_SOURCES
+    plBtPhysicalControllerCore.cpp
     plLOSDispatch.cpp
     plPhysicalImpl.cpp
     plSimulationMgrImpl.cpp
 )
 
 set(plBullet_HEADERS
+    plBtPhysicalControllerCore.h
     plLOSDispatch.h
     plPhysicalImpl.h
     plSimulationMgrImpl.h
