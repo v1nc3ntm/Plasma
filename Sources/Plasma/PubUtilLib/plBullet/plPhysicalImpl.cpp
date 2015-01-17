@@ -39,6 +39,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "plBtDefs.h"
 #include "plPhysicalImpl.h"
 #include "plSimulationMgrImpl.h"
 
@@ -66,12 +67,12 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <BulletDynamics/Dynamics/btRigidBody.h>
 #include <LinearMath/btVector3.h>
 
-class plPhysicalImpl::Private {
+class plPhysicalImpl::Private : plBtDefs::ObjectData {
 public:
     btRigidBody *       obj;
     plSimDefs::Bounds   bounds;
     plSimDefs::Group    group;
-    uint32_t            reportsOn;
+    uint32_t            reportsOn; // bit mask of groups who collide are repported by this sensor (group must be kGroupDetector to take effect)
     plSimDefs::plLOSDB  losdb;
     plKey               objKey, sceneKey, worldKey;
     plPhysicalSndGroup* sndGroup;
@@ -82,6 +83,10 @@ public:
     hsPoint3            pos;
     
     Private () : hit(false) {}
+    
+    virtual plKey               GetObjKey () const { return objKey; }
+    virtual plSimDefs::plLOSDB  GetLOSDBs () const { return losdb; }
+    virtual bool                IsSeeking () const { FATAL("mustn't be called: error in collision filters"); return false; }
     
     bool HandleRefMsg (plGenRefMsg * refMsg) {
         uint8_t     refCtxt = refMsg->GetContext();
@@ -103,6 +108,36 @@ public:
 
         return true;
     }
+    
+    static unsigned short ConvertMask (plSimDefs::Group group, unsigned short reportsOn) {
+        switch (group) {
+        case plSimDefs::kGroupStatic:           return (1 << plSimDefs::kGroupAvatar)
+                                                     | (1 << plSimDefs::kGroupDynamic);
+        case plSimDefs::kGroupAvatarBlocker:    return (1 << plSimDefs::kGroupAvatar);
+        case plSimDefs::kGroupDynamicBlocker:   return (1 << plSimDefs::kGroupDynamic);
+//        case plSimDefs::kGroupAvatar:           return (1 << plSimDefs::kGroupStatic)
+//                                                     | (1 << plSimDefs::kGroupAvatarBlocker)
+//                                                     | (1 << plSimDefs::kGroupDynamic)
+//                                                     | (1 << plSimDefs::kGroupDetector)
+//                                                     | (1 << plSimDefs::kGroupExcludeRegion);
+        case plSimDefs::kGroupDynamic:          return (1 << plSimDefs::kGroupStatic)
+                                                     | (1 << plSimDefs::kGroupDynamicBlocker)
+                                                     | (1 << plSimDefs::kGroupAvatar)
+                                                     | (1 << plSimDefs::kGroupDynamic)
+                                                     | (1 << plSimDefs::kGroupDetector)
+                                                     | (1 << plSimDefs::kGroupAvatarKinematic);
+        case plSimDefs::kGroupDetector:         return reportsOn;
+        case plSimDefs::kGroupLOSOnly:          return 0;
+        case plSimDefs::kGroupExcludeRegion:    return (1 << plSimDefs::kGroupAvatar);
+//        case plSimDefs::kGroupAvatarKinematic:  return (1 << plSimDefs::kGroupDynamic)
+//                                                     | (1 << plSimDefs::kGroupDetector);
+        case plSimDefs::kGroupMax:              break;
+        }
+        
+        FATAL("Invalid group for no-avatar physical");
+        return 0;
+    }
+    
 };
 
 plPhysicalImpl::plPhysicalImpl () : physic(new Private) {}
@@ -123,7 +158,7 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     physic->bounds = (plSimDefs::Bounds)stream->ReadByte();
     physic->group  = (plSimDefs::Group) stream->ReadByte();
     
-    // ?
+    // group mask for collision reports
     physic->reportsOn = stream->ReadLE32();
     
     // Line Of Sight (data base?)
@@ -236,11 +271,20 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     ////////////////////////////////////////////////////
     
     physic->obj = new btRigidBody(info);
+    physic->obj->setUserPointer((plBtDefs::ObjectData*)physic);
     
     if (physic->props.IsBitSet(plSimulationInterface::kStartInactive))
         physic->obj->forceActivationState(DISABLE_SIMULATION);
     
-    plSimulationMgrImpl::GetOrCreateWorld(physic->worldKey).addRigidBody(physic->obj);
+    if (physic->group == plSimDefs::kGroupDetector)
+        physic->obj->setCollisionFlags(
+            physic->obj->getCollisionFlags() | btCollisionObject::CF_NO_CONTACT_RESPONSE
+        );
+    
+    
+    plSimulationMgrImpl::GetOrCreateWorld(physic->worldKey).addRigidBody(
+        physic->obj, (1 << physic->group), Private::ConvertMask(physic->group, physic->reportsOn)
+    );
 }
 
 void plPhysicalImpl::Write (hsStream * stream, hsResMgr * mgr) {
@@ -284,7 +328,7 @@ bool plPhysicalImpl::MsgReceive (plMessage * msg) {
     {
         return physic->HandleRefMsg(refM);
     }
-    else if (plSimulationMsg * simM = plSimulationMsg::ConvertNoRef(msg))
+    else if (plSimulationMsg::ConvertNoRef(msg))
     {
         if(plLinearVelocityMsg * velMsg = plLinearVelocityMsg::ConvertNoRef(msg))
         {

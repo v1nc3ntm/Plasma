@@ -39,14 +39,17 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+
+#include "plBtDefs.h"
+#include "plLOSDispatch.h"
+#include "plSimulationMgrImpl.h"
+
 #include "plAvatar/plArmatureMod.h"
 #include "plAvatar/plAvatarMgr.h"
 #include "plAvatar/plPhysicalControllerCore.h"
-#include "plLOSDispatch.h"
 #include "plMessage/plLOSHitMsg.h"
 #include "plMessage/plLOSRequestMsg.h"
 #include "plProfile.h"
-#include "plSimulationMgrImpl.h"
 
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include <LinearMath/btVector3.h>
@@ -70,8 +73,8 @@ struct plLOSDispatch::Private {
     static void DoRayCast (plKey myKey, const plLOSRequestMsg & req, btCollisionWorld::ClosestRayResultCallback & result) {
         btDiscreteDynamicsWorld & world = GetWorld(req);
         
-        //result.m_collisionFilterMask  = req.fRequestType; //TODO
-        //result.m_collisionFilterGroup = req.fRequestType; //TODO
+        // NOTE: only m_collisionFilterMask is used to filter (\see ClosestRayResultCallback)
+        result.m_collisionFilterMask  = req.fRequestType;
         world.rayTest(result.m_rayFromWorld, result.m_rayToWorld, result); // TODO: ignore disabled clickable
         
         bool hasHit = result.hasHit();
@@ -81,8 +84,7 @@ struct plLOSDispatch::Private {
                 result.m_rayFromWorld,
                 result.m_hitPointWorld
             );
-            //result2.m_collisionFilterMask  = req.fCullDB; //TODO
-            //result2.m_collisionFilterGroup = req.fCullDB; //TODO
+            result2.m_collisionFilterMask  = req.fCullDB;
             world.rayTest(result.m_rayFromWorld, result.m_hitPointWorld, result2);
             
             hasHit = !result2.hasHit(); // TODO: ignore disabled clickable
@@ -100,7 +102,14 @@ struct plLOSDispatch::Private {
         {
             plLOSHitMsg * hitMsg = new plLOSHitMsg(myKey, req.GetSender(), nullptr);
             hitMsg->fNoHit = !hasHit;
-            //hitMsg->fObj = result.m_collisionObject.GetUserPointer(); // TODO
+            hitMsg->fObj = nullptr;
+            if (hasHit)
+                if (!result.m_collisionObject)
+                    FATAL("hit report without colision object");
+                else if (!result.m_collisionObject->getUserPointer())
+                    FATAL("Collision object without ptr to user data");
+                else
+                    hitMsg->fObj = ((plBtDefs::ObjectData*)result.m_collisionObject->getUserPointer())->GetObjKey();
             hitMsg->fDistance = result.m_rayFromWorld.distance(result.m_hitPointWorld);
             hitMsg->fNormal.fX = result.m_hitNormalWorld.x();
             hitMsg->fNormal.fY = result.m_hitNormalWorld.y();
@@ -114,11 +123,32 @@ struct plLOSDispatch::Private {
         }
     }
     
-    
-    struct FirstRayResultCallback : btCollisionWorld::ClosestRayResultCallback {
+    struct ClosestRayResultCallback : btCollisionWorld::ClosestRayResultCallback {
+        ClosestRayResultCallback(const btVector3 & from, const btVector3 & to)
+         : btCollisionWorld::ClosestRayResultCallback(from, to)
+        {}
+        
+        virtual bool needsCollision (btBroadphaseProxy * proxy) const {
+            if (!proxy->m_clientObject) {
+                FATAL("btBroadphaseProxy without client object!");
+                return false;
+            }
+            
+            plBtDefs::ObjectData * data = (plBtDefs::ObjectData*)((btCollisionObject*)proxy->m_clientObject)->getUserPointer();
+            if (!data) {
+                FATAL("btCollisionObject without ptr to user-data");
+                return false;
+            }
+            
+            return m_collisionFilterMask & data->GetLOSDBs();
+        }
+        
+    };
+        
+    struct FirstRayResultCallback : ClosestRayResultCallback {
         
         FirstRayResultCallback(const btVector3 & from, const btVector3 & to)
-         : btCollisionWorld::ClosestRayResultCallback(from, to)
+         : ClosestRayResultCallback(from, to)
         {}
         
         virtual btScalar addSingleResult (
@@ -151,7 +181,7 @@ bool plLOSDispatch::MsgReceive (plMessage * msg) {
     
     switch (requestMsg->fTestType) {
     case plLOSRequestMsg::kTestClosest: {
-        btCollisionWorld::ClosestRayResultCallback result(from, to);
+        Private::ClosestRayResultCallback result(from, to);
         Private::DoRayCast(GetKey(), *requestMsg, result);
         break; }
     case plLOSRequestMsg::kTestAny: {

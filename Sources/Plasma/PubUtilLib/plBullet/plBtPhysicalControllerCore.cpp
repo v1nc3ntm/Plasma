@@ -75,38 +75,56 @@ struct plBtPhysicalControllerCore::Private {
     static constexpr int kZAxis = 2;
     static constexpr int kUpAxis = kZAxis;
     
+    static const unsigned short kKinematicMask =
+        (1 << plSimDefs::kGroupAvatarKinematic)
+      | (1 << plSimDefs::kGroupDynamic)
+      | (1 << plSimDefs::kGroupDetector);
+    static const unsigned short kAvatarMask =
+        (1 << plSimDefs::kGroupStatic)
+      | (1 << plSimDefs::kGroupAvatarBlocker)
+      | (1 << plSimDefs::kGroupDynamic)
+      | (1 << plSimDefs::kGroupDetector)
+      | (1 << plSimDefs::kGroupExcludeRegion);
+    
     struct btKinematicControler : btControler {
         btPairCachingGhostObject        ghost;
         btKinematicCharacterController  ctrl;
         
-        btKinematicControler (hsPoint3 & pos, btCapsuleShape & shape)
-         : ctrl(&ghost, &shape, kSlopeLimit, kUpAxis) {}
+        btKinematicControler (plBtDefs::ObjectData * data, hsPoint3 & pos, btCapsuleShape & shape)
+         : ctrl(&ghost, &shape, kSlopeLimit, kUpAxis) {
+            ghost.getBroadphaseHandle()->m_collisionFilterGroup = (1 << plSimDefs::kGroupAvatarKinematic);
+            ghost.getBroadphaseHandle()->m_collisionFilterMask  = kKinematicMask;
+            ghost.setUserPointer(data);
+        }
         
         virtual ~btKinematicControler () {}
         
-        virtual AddTo(btDiscreteDynamicsWorld & world) {
-            world.addCharacter (&ctrl);
+        virtual void AddTo(btDiscreteDynamicsWorld & world) {
+            world.addAction (&ctrl);
         }
         
-        virtual RemoveFrom (btDiscreteDynamicsWorld & world) {
-            world.removeCharacter (&ctrl);
+        virtual void RemoveFrom (btDiscreteDynamicsWorld & world) {
+            world.removeAction (&ctrl);
         }
         
-        virtual GetPos (hsPoint3 & pos) {
+        virtual void GetPos (hsPoint3 & pos) {
             auto & orig = ghost.getWorldTransform ().getOrigin();
             pos.fX = orig.x();
             pos.fY = orig.y();
             pos.fZ = orig.z();
         }
+        
+        virtual void SetEnable (bool) {}
     };
 
     struct btDynamicControler : btControler {
         btRigidBody body;
         
-        btDynamicControler (hsPoint3 & pos, btCapsuleShape & shape)
+        btDynamicControler (plBtDefs::ObjectData * data, hsPoint3 & pos, btCapsuleShape & shape)
          : body(createInfos(pos, shape))
         {
             body.setAngularFactor(0); // disable rotation
+            body.setUserPointer (data);
         }
         
         virtual ~btDynamicControler () {}
@@ -127,19 +145,29 @@ struct plBtPhysicalControllerCore::Private {
             return result;
         }
         
-        virtual AddTo (btDiscreteDynamicsWorld & world) {
-            world.addRigidBody (&body);
+        virtual void AddTo (btDiscreteDynamicsWorld & world) {
+            world.addRigidBody (&body, (1 << plSimDefs::kGroupAvatarKinematic), kKinematicMask);
         }
         
-        virtual RemoveFrom (btDiscreteDynamicsWorld & world) {
+        virtual void RemoveFrom (btDiscreteDynamicsWorld & world) {
             world.removeRigidBody (&body);
         }
         
-        virtual GetPos (hsPoint3 & pos) {
+        virtual void GetPos (hsPoint3 & pos) {
             auto orig = body.getWorldTransform().getOrigin();
             pos.fX = orig.x();
             pos.fY = orig.y();
             pos.fZ = orig.z();
+        }
+        
+        virtual void SetEnable (bool enable) {
+            if (enable) {
+                body.getBroadphaseHandle()->m_collisionFilterGroup = (1 << plSimDefs::kGroupAvatar);
+                body.getBroadphaseHandle()->m_collisionFilterMask  = kAvatarMask;
+            } else {
+                body.getBroadphaseHandle()->m_collisionFilterGroup = (1 << plSimDefs::kGroupAvatarKinematic);
+                body.getBroadphaseHandle()->m_collisionFilterMask  = kKinematicMask;
+            }
         }
         
     };
@@ -161,6 +189,10 @@ plBtPhysicalControllerCore::plBtPhysicalControllerCore (plKey ownerSO, float hei
 {}
 
 
+plKey               plBtPhysicalControllerCore::GetObjKey () const { return fOwner; }
+plSimDefs::plLOSDB  plBtPhysicalControllerCore::GetLOSDBs () const { return fLOSDB; }
+bool                plBtPhysicalControllerCore::IsSeeking () const { return fSeeking; }
+
 void plBtPhysicalControllerCore::Enable (bool enable) {
     if (fEnabled != enable)
     {
@@ -170,16 +202,14 @@ void plBtPhysicalControllerCore::Enable (bool enable) {
             fEnableChanged = true;
         else if (fMovementStrategy && !fMovementStrategy->IsKinematic())
         {
-            // Dynamic controllers are forced kinematic
-            //fActor->raiseBodyFlag(NX_BF_KINEMATIC);
-            //NxShape* shape = fActor->getShapes()[0];
-            //shape->setGroup(plSimDefs::kGroupAvatarKinematic);
+            ctrl->SetEnable (false);
         }
     }
 }
 
 void plBtPhysicalControllerCore::IHandleEnableChanged () {
     fEnableChanged = false;
+    ctrl->SetEnable (true);
 }
 
 
@@ -212,9 +242,9 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
         }
         
         if (strategy->IsKinematic())
-            ctrl = new Private::btKinematicControler (fLocalPosition, shape);
+            ctrl = new Private::btKinematicControler (this, fLocalPosition, shape);
         else
-            ctrl = new Private::btDynamicControler (fLocalPosition, shape);
+            ctrl = new Private::btDynamicControler (this, fLocalPosition, shape);
         
         ctrl->AddTo (world);
     }

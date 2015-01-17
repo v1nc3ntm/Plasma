@@ -39,15 +39,24 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "plBtDefs.h"
+
 #include "plAvatar/plPhysicalControllerCore.h"
 
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 
 class btDiscreteDynamicsWorld;
 
-class plBtPhysicalControllerCore: public plPhysicalControllerCore
+class plBtPhysicalControllerCore: plBtDefs::ObjectData, public plPhysicalControllerCore
 {
 public:
+    
+    ////////////////////////////////////////////
+    // plBtDefs::ObjectData implementation
+    
+    virtual plKey               GetObjKey () const;
+    virtual plSimDefs::plLOSDB  GetLOSDBs () const;
+    virtual bool                IsSeeking () const;
     
     ////////////////////////////////////////////
     // plPhysicalControllerCore implementation
@@ -84,9 +93,10 @@ public:
     
 private:
     struct btControler {
-        virtual AddTo (btDiscreteDynamicsWorld & world) = 0;
-        virtual RemoveFrom (btDiscreteDynamicsWorld & world) = 0;
-        virtual GetPos (hsPoint3 & pos) = 0;
+        virtual void AddTo (btDiscreteDynamicsWorld & world) = 0;
+        virtual void RemoveFrom (btDiscreteDynamicsWorld & world) = 0;
+        virtual void GetPos (hsPoint3 & pos) = 0;
+        virtual void SetEnable (bool) = 0;
         
         virtual ~btControler () = 0;
     };

@@ -39,8 +39,11 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "plBtDefs.h"
 #include "plPhysical/plSimulationMgr.h"
 #include "plSimulationMgrImpl.h"
+
+#include "plAvatar/plPhysicalControllerCore.h"
 
 #include <map>
 
@@ -60,6 +63,40 @@ public:
     map<plKey, btDiscreteDynamicsWorld> worlds;
     
     Private () : suspend(true) {}
+    
+    static inline bool IsSeeking (btBroadphaseProxy * proxy) {
+        if (!proxy->m_clientObject) {
+            FATAL("btBroadphaseProxy without client object!");
+            return false;
+        }
+        plBtDefs::ObjectData * data = (plBtDefs::ObjectData*)((btCollisionObject*)proxy->m_clientObject)->getUserPointer();
+        
+        if (!data) {
+            FATAL("btCollisionObject in avatar group without ptr to user-data");
+            return false;
+        }
+        
+        return data->IsSeeking ();
+    }
+    
+    struct FilterCallback : public btOverlapFilterCallback {
+        virtual bool needBroadphaseCollision (btBroadphaseProxy * proxy0, btBroadphaseProxy * proxy1) const {
+            // group flags check
+            if (!(proxy0->m_collisionFilterGroup & proxy1->m_collisionFilterMask
+               && proxy1->m_collisionFilterGroup & proxy0->m_collisionFilterMask))
+                return false;
+            
+            // seek mode avatar check
+            if (proxy0->m_collisionFilterGroup == btBroadphaseProxy::CharacterFilter
+             && proxy1->m_collisionFilterGroup == plBtDefs::kGrpExclude)
+                return !IsSeeking(proxy0);
+            if (proxy1->m_collisionFilterGroup == btBroadphaseProxy::CharacterFilter
+             && proxy0->m_collisionFilterGroup == plBtDefs::kGrpExclude)
+                return !IsSeeking(proxy1);
+            
+            return true;
+        }
+    };
 };
 
 plSimulationMgrImpl::Private * plSimulationMgrImpl::Private::instance = nullptr;
@@ -116,6 +153,7 @@ btDiscreteDynamicsWorld & plSimulationMgrImpl::GetOrCreateWorld (plKey worldKey)
     static btCollisionDispatcher                dispatcher(&configuration);
     static btDbvtBroadphase                     broadphase;
     static btSequentialImpulseConstraintSolver  solver;
+    static Private::FilterCallback              filter;
     
     it = Private::instance->worlds.emplace_hint(
         it,
@@ -125,8 +163,9 @@ btDiscreteDynamicsWorld & plSimulationMgrImpl::GetOrCreateWorld (plKey worldKey)
             &dispatcher, &broadphase, &solver, &configuration
         )
     );
-            
+    
     it->second.setGravity(btVector3(0, 0, -32.174049f));
+    it->second.getPairCache()->setOverlapFilterCallback(&filter);
     
     return it->second;
 }
