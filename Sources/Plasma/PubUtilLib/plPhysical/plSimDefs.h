@@ -61,7 +61,8 @@ namespace plSimDefs
         kGroupLOSOnly,          ///< Blocks nothing, for los checks only
         kGroupExcludeRegion,    ///< kExcludeRegion setting up so only blocks avatars and only when not in seek mode
         kGroupAvatarKinematic,  ///< A kinematic avatar only interacts with dynamics and detectors
-        kGroupMax               ///< Just for error checking
+        kGroupMax,              ///< Just for error checking
+        kGroupLimitMax = 16     ///< Only 16 groups can be defined with the bullet physic implementation.
     };
 
     /** Different types of line-of-sight requests. */

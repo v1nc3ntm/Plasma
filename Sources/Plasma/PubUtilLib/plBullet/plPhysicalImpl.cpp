@@ -83,6 +83,10 @@ public:
     hsPoint3            pos;
     
     Private () : hit(false) {}
+    ~Private () {
+        if (obj)
+            plSimulationMgrImpl::GetOrCreateWorld(worldKey).removeRigidBody(obj);
+    }
     
     virtual plKey               GetObjKey () const { return objKey; }
     virtual plSimDefs::plLOSDB  GetLOSDBs () const { return losdb; }
@@ -237,9 +241,11 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     case plSimDefs::kProxyBounds:
     case plSimDefs::kExplicitBounds: {
         btCompoundShape * shape = new btCompoundShape();
+        stream->Skip(28); // skip "NXS\x01MESH" 0 8 0,001 255 0
         uint32_t ptCount = stream->ReadLE32();
-        btVector3 * pts = new btVector3[ptCount];
+        uint32_t count = stream->ReadLE32();
         
+        btVector3 * pts = new btVector3[ptCount];
         for (int i = 0; i < ptCount; i++)
             pts[i] = btVector3(
                 stream->ReadLEScalar(),
@@ -247,13 +253,12 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
                 stream->ReadLEScalar()
             );
         
-        uint32_t count = stream->ReadLE32();
         for (int i = 0; i < count; i++)
         {
-            uint16_t a, b, c;
-            a = stream->ReadLE16(); hsAssert(a < ptCount, "invalid face vertex index");
-            b = stream->ReadLE16(); hsAssert(b < ptCount, "invalid face vertex index");
-            c = stream->ReadLE16(); hsAssert(c < ptCount, "invalid face vertex index");
+            uint8_t a, b, c;
+            a = stream->ReadByte(); hsAssert(a < ptCount, "invalid face vertex index");
+            b = stream->ReadByte(); hsAssert(b < ptCount, "invalid face vertex index");
+            c = stream->ReadByte(); hsAssert(c < ptCount, "invalid face vertex index");
             
             shape->addChildShape(
                 btTransform(),

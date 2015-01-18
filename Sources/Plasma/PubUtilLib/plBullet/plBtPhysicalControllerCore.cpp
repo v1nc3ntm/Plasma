@@ -67,7 +67,13 @@ namespace
     };
 }
 
-plBtPhysicalControllerCore::~plBtPhysicalControllerCore () {}
+plBtPhysicalControllerCore::~plBtPhysicalControllerCore () {
+    if (ctrl) {
+        if (fWorldKey)
+            ctrl->RemoveFrom (plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
+        delete ctrl;
+    }
+}
 plBtPhysicalControllerCore::btControler::~btControler () {}
 
 struct plBtPhysicalControllerCore::Private {
@@ -92,19 +98,20 @@ struct plBtPhysicalControllerCore::Private {
         
         btKinematicControler (plBtDefs::ObjectData * data, hsPoint3 & pos, btCapsuleShape & shape)
          : ctrl(&ghost, &shape, kSlopeLimit, kUpAxis) {
-            ghost.getBroadphaseHandle()->m_collisionFilterGroup = (1 << plSimDefs::kGroupAvatarKinematic);
-            ghost.getBroadphaseHandle()->m_collisionFilterMask  = kKinematicMask;
             ghost.setUserPointer(data);
+            ghost.setCollisionShape(&shape);
         }
         
         virtual ~btKinematicControler () {}
         
         virtual void AddTo(btDiscreteDynamicsWorld & world) {
-            world.addAction (&ctrl);
+            world.addCollisionObject(&ghost, (1 << plSimDefs::kGroupAvatarKinematic), kKinematicMask);
+            world.addAction(&ctrl);
         }
         
         virtual void RemoveFrom (btDiscreteDynamicsWorld & world) {
-            world.removeAction (&ctrl);
+            world.removeCollisionObject(&ghost);
+            world.removeAction(&ctrl);
         }
         
         virtual void GetPos (hsPoint3 & pos) {
@@ -161,6 +168,8 @@ struct plBtPhysicalControllerCore::Private {
         }
         
         virtual void SetEnable (bool enable) {
+            if (!body.getBroadphaseHandle())
+                return; // not in a world
             if (enable) {
                 body.getBroadphaseHandle()->m_collisionFilterGroup = (1 << plSimDefs::kGroupAvatar);
                 body.getBroadphaseHandle()->m_collisionFilterMask  = kAvatarMask;
@@ -214,6 +223,15 @@ void plBtPhysicalControllerCore::IHandleEnableChanged () {
 
 
 void plBtPhysicalControllerCore::SetSubworld (plKey world) {
+    if (world != fWorldKey) {
+        if (ctrl) {
+            if (fWorldKey)
+                ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
+            if (world)
+                ctrl->AddTo(plSimulationMgrImpl::GetOrCreateWorld(world));
+        }
+        fWorldKey = world;
+    }
 }
 
 void plBtPhysicalControllerCore::GetState (hsPoint3 & pos, float & zRot) {
@@ -234,19 +252,24 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
     
     if (!fMovementStrategy || fMovementStrategy->IsKinematic() != strategy->IsKinematic())
     {
-        btDiscreteDynamicsWorld & world = plSimulationMgrImpl::GetOrCreateWorld(fWorldKey);
+        btDiscreteDynamicsWorld * world;
+
+        if (fWorldKey)
+            world = &plSimulationMgrImpl::GetOrCreateWorld(fWorldKey);
         
         if (ctrl) {
-            ctrl->RemoveFrom(world);
+            if (fWorldKey)
+                ctrl->RemoveFrom(*world);
             delete ctrl;
         }
         
         if (strategy->IsKinematic())
-            ctrl = new Private::btKinematicControler (this, fLocalPosition, shape);
+            ctrl = new Private::btKinematicControler(this, fLocalPosition, shape);
         else
-            ctrl = new Private::btDynamicControler (this, fLocalPosition, shape);
+            ctrl = new Private::btDynamicControler(this, fLocalPosition, shape);
         
-        ctrl->AddTo (world);
+        if (fWorldKey)
+            ctrl->AddTo(*world);
     }
     
     fMovementStrategy = strategy;
@@ -255,9 +278,7 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
 void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
 }
 
-void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
-    ctrl->GetPos(pos);
-}
+void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) { ctrl->GetPos(pos); }
 
 void plBtPhysicalControllerCore::Move (hsVector3 displacement, unsigned int collideWith, unsigned int & collisionResults) {
 }
@@ -271,7 +292,6 @@ int plBtPhysicalControllerCore::SweepControllerPath (
 ) {
 }
 
-void plBtPhysicalControllerCore::LeaveAge () {
-}
+void plBtPhysicalControllerCore::LeaveAge () { SetSubworld (nullptr); }
 
 

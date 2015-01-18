@@ -122,7 +122,7 @@ void plSimulationMgr::Advance (float deltaSecs) {
     if (plSimulationMgrImpl::Private::instance->suspend)
         return;
     
-    for (auto it: plSimulationMgrImpl::Private::instance->worlds)
+    for (auto & it: plSimulationMgrImpl::Private::instance->worlds)
         it.second.stepSimulation(deltaSecs);  //, 60/minFps);
 }
 

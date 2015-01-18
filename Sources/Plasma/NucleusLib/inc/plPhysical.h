@@ -72,7 +72,7 @@ public:
     CLASSNAME_REGISTER(plPhysical);
     GETINTERFACE_ANY(plPhysical, plSynchedObject);
 
-    
+    /// @see plSimulationInterface::plSimulationProperties
     virtual plPhysical & SetProperty (int prop, bool b) = 0;
     virtual bool         GetProperty (int prop) const = 0;
 
