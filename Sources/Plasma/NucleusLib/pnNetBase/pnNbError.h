@@ -54,7 +54,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 // These codes may not be changed unless ALL servers, clients and databases
 // are simultaneously updated; so basically forget it =)
-enum ENetError {
+enum ENetError : int32_t { // Net messages require ENetError to be sizeof(int32_t)
     // codes <= 0 are not errors
     kNetPending                     = -1,
     kNetSuccess                     = 0,
@@ -112,12 +112,8 @@ enum ENetError {
     // Be sure to add strings for additional error codes in pnNbError.cpp
     // (don't worry, the compiler will tell you if one is missing ;)
     kNumNetErrors,
-
-    // Net messages require ENetError to be sizeof(uint32_t)
-    kNetErrorForceDword             = (uint32_t)(-1)
 };
-
-//COMPILER_ASSERT_HEADER(pnNbError, sizeof(ENetError) == sizeof(uint32_t));
+static_assert (sizeof(ENetError) == 4, "sizeof(ENetError) must be 4 bytes");
 
 #define IS_NET_ERROR(a)     (((int)(a)) > kNetSuccess)
 #define IS_NET_SUCCESS(a)   (((int)(a)) == kNetSuccess)

@@ -59,7 +59,6 @@ const unsigned kMaxTcpPacketSize                = 1460;
 //============================================================================
 const unsigned kNetMaxSymmetricSeedBytes        = 7;    // 56 bits
 const unsigned kNetDiffieHellmanKeyBits         = 512;
-//COMPILER_ASSERT_HEADER(DH, IS_POW2(kNetDiffieHellmanKeyBits));
 
 //============================================================================
 // Data constants
