@@ -225,7 +225,11 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     }
     case plSimDefs::kHullBounds: {
         btConvexHullShape * hull = new btConvexHullShape;
+        
+        stream->Skip(40); // skip "NXS\x01CVXM" 2 4 "ICE\x01CLHL" 0 "ICE\x01CLHL" 5
         uint32_t count = stream->ReadLE32();
+        hsAssert (count <= 0x100, "Invalid number of points in NXS.CVXM shape");
+        stream->Skip(20); // skip <nbFaces> <nbFaces> <unknow1> <nbFaces*2> <nbFaces*2>
         
         for (int i = 0; i < count; i++)
             hull->addPoint(
@@ -235,14 +239,19 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
                     stream->ReadLEScalar()
                 )
             );
+        // ignore <unknow2>, { uint8 ptIdx[3]; }faces[<nbFaces>] and short(0)
+        // maybe they have some others datas in file
+        
         info.m_collisionShape = hull;
         break;
     }
     case plSimDefs::kProxyBounds:
     case plSimDefs::kExplicitBounds: {
         btCompoundShape * shape = new btCompoundShape();
+        
         stream->Skip(28); // skip "NXS\x01MESH" 0 8 0,001 255 0
         uint32_t ptCount = stream->ReadLE32();
+        hsAssert (ptCount <= 0x100, "Invalid number of points in NXS.CVXM shape");
         uint32_t count = stream->ReadLE32();
         
         btVector3 * pts = new btVector3[ptCount];
@@ -265,6 +274,8 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
                 new btTriangleShape(pts[a], pts[b], pts[c])
             );
         }
+        // maybe they have some others datas in file
+        
         delete[] pts;
         info.m_collisionShape = shape;
         break;
