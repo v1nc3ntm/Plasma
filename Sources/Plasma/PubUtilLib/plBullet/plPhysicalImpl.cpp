@@ -91,6 +91,7 @@ public:
     virtual plKey               GetObjKey () const { return objKey; }
     virtual plSimDefs::plLOSDB  GetLOSDBs () const { return losdb; }
     virtual bool                IsSeeking () const { FATAL("mustn't be called: error in collision filters"); return false; }
+    virtual void OnHit (const ObjectData &, const btVector3 & normal) const {}
     
     bool HandleRefMsg (plGenRefMsg * refMsg) {
         uint8_t     refCtxt = refMsg->GetContext();

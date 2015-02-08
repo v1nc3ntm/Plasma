@@ -46,8 +46,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <BulletCollision/CollisionShapes/btCapsuleShape.h>
 
 class btDiscreteDynamicsWorld;
+class btCollisionObject;
 
-class plBtPhysicalControllerCore: plBtDefs::ObjectData, public plPhysicalControllerCore
+class plBtPhysicalControllerCore : public plBtDefs::ObjectData, public plPhysicalControllerCore
 {
 public:
     
@@ -57,6 +58,7 @@ public:
     virtual plKey               GetObjKey () const;
     virtual plSimDefs::plLOSDB  GetLOSDBs () const;
     virtual bool                IsSeeking () const;
+    virtual void OnHit (const ObjectData &, const btVector3 & normal) const;
     
     ////////////////////////////////////////////
     // plPhysicalControllerCore implementation
@@ -92,14 +94,7 @@ public:
     class Private;
     
 private:
-    struct btControler {
-        virtual void AddTo (btDiscreteDynamicsWorld & world) = 0;
-        virtual void RemoveFrom (btDiscreteDynamicsWorld & world) = 0;
-        virtual void GetPos (hsPoint3 & pos) = 0;
-        virtual void SetEnable (bool) = 0;
-        
-        virtual ~btControler () = 0;
-    };
+    struct btControler;
     
     plBtPhysicalControllerCore (plKey ownerSO, float height, float radius, bool human);
     virtual ~plBtPhysicalControllerCore ();

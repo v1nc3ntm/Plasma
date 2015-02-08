@@ -1,13 +1,8 @@
 #include "plPhysical/plSimDefs.h"
 #include "pnKeyedObject/plKey.h"
 
-#include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
-#include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>
-#include <BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h>
-#include <BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h>
-#include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
-
 class plPhysicalControllerCore;
+class btVector3;
 
 struct plBtDefs {
     
@@ -17,6 +12,7 @@ struct plBtDefs {
         virtual plKey               GetObjKey () const = 0;
         virtual plSimDefs::plLOSDB  GetLOSDBs () const = 0;
         virtual bool                IsSeeking () const = 0;
+        virtual void OnHit (const ObjectData &, const btVector3 & normal) const = 0;
     };
 };
 

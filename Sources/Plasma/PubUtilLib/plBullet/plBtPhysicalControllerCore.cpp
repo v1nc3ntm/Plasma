@@ -41,6 +41,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plBtPhysicalControllerCore.h"
 #include "plSimulationMgrImpl.h"
+#include "pnSceneObject/plCoordinateInterface.h"
+#include "pnSceneObject/plSceneObject.h"
 
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <BulletDynamics/Character/btKinematicCharacterController.h>
@@ -66,6 +68,17 @@ namespace
         T * ptr;
     };
 }
+
+struct plBtPhysicalControllerCore::btControler {
+    virtual btCollisionObject & GetObj () = 0;
+    virtual void AddTo (btDiscreteDynamicsWorld & world) = 0;
+    virtual void RemoveFrom (btDiscreteDynamicsWorld & world) = 0;
+    virtual void SetEnable (bool) = 0;
+    virtual void SetVelocity (const hsVector3 &) = 0;
+    
+    virtual ~btControler () = 0;
+};
+
 
 plBtPhysicalControllerCore::~plBtPhysicalControllerCore () {
     if (ctrl) {
@@ -104,6 +117,8 @@ struct plBtPhysicalControllerCore::Private {
         
         virtual ~btKinematicControler () {}
         
+        virtual btCollisionObject & GetObj () { return ghost; }
+        
         virtual void AddTo(btDiscreteDynamicsWorld & world) {
             world.addCollisionObject(&ghost, (1 << plSimDefs::kGroupAvatarKinematic), kKinematicMask);
             world.addAction(&ctrl);
@@ -114,14 +129,8 @@ struct plBtPhysicalControllerCore::Private {
             world.removeAction(&ctrl);
         }
         
-        virtual void GetPos (hsPoint3 & pos) {
-            auto & orig = ghost.getWorldTransform ().getOrigin();
-            pos.fX = orig.x();
-            pos.fY = orig.y();
-            pos.fZ = orig.z();
-        }
-        
         virtual void SetEnable (bool) {}
+        virtual void SetVelocity (const hsVector3 &) {}
     };
 
     struct btDynamicControler : btControler {
@@ -152,19 +161,14 @@ struct plBtPhysicalControllerCore::Private {
             return result;
         }
         
+        virtual btCollisionObject & GetObj () { return body; }
+        
         virtual void AddTo (btDiscreteDynamicsWorld & world) {
             world.addRigidBody (&body, (1 << plSimDefs::kGroupAvatarKinematic), kKinematicMask);
         }
         
         virtual void RemoveFrom (btDiscreteDynamicsWorld & world) {
             world.removeRigidBody (&body);
-        }
-        
-        virtual void GetPos (hsPoint3 & pos) {
-            auto orig = body.getWorldTransform().getOrigin();
-            pos.fX = orig.x();
-            pos.fY = orig.y();
-            pos.fZ = orig.z();
         }
         
         virtual void SetEnable (bool enable) {
@@ -179,6 +183,9 @@ struct plBtPhysicalControllerCore::Private {
             }
         }
         
+        virtual void SetVelocity (const hsVector3 & vec) {
+            body.setLinearVelocity(btVector3(vec.fX, vec.fY, vec.fZ));
+        }
     };
 };
 
@@ -201,6 +208,14 @@ plBtPhysicalControllerCore::plBtPhysicalControllerCore (plKey ownerSO, float hei
 plKey               plBtPhysicalControllerCore::GetObjKey () const { return fOwner; }
 plSimDefs::plLOSDB  plBtPhysicalControllerCore::GetLOSDBs () const { return fLOSDB; }
 bool                plBtPhysicalControllerCore::IsSeeking () const { return fSeeking; }
+
+void plBtPhysicalControllerCore::OnHit (
+    const ObjectData &,
+    const btVector3 & normal
+) const {
+    hsVector3 n(normal.x(), normal.y(), normal.z());
+    fMovementStrategy->AddContactNormals (n);
+}
 
 void plBtPhysicalControllerCore::Enable (bool enable) {
     if (fEnabled != enable)
@@ -278,12 +293,18 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
 void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
 }
 
-void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) { ctrl->GetPos(pos); }
+void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
+    auto & orig = ctrl->GetObj().getWorldTransform().getOrigin();
+    pos.fX = orig.x();
+    pos.fY = orig.y();
+    pos.fZ = orig.z();
+}
 
 void plBtPhysicalControllerCore::Move (hsVector3 displacement, unsigned int collideWith, unsigned int & collisionResults) {
 }
 
-void plBtPhysicalControllerCore::SetLinearVelocitySim (const hsVector3 & linearVel) {
+void plBtPhysicalControllerCore::SetLinearVelocitySim (const hsVector3 & vec) {
+    ctrl->SetVelocity (vec);
 }
 
 int plBtPhysicalControllerCore::SweepControllerPath (

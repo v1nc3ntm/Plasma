@@ -97,6 +97,24 @@ public:
             return true;
         }
     };
+    
+    static void bulletTickCallback (btDynamicsWorld * world, btScalar timeStep) {
+        // repport contacts
+        for (int i = 0; i < world->getDispatcher()->getNumManifolds(); ++i) {
+            btPersistentManifold & pair = *world->getDispatcher()->getManifoldByIndexInternal(i);
+            
+            plBtDefs::ObjectData & obj1 = *(plBtDefs::ObjectData *) pair.getBody0()->getUserPointer();
+            plBtDefs::ObjectData & obj2 = *(plBtDefs::ObjectData *) pair.getBody1()->getUserPointer();
+            
+            for (int j = 0; j < pair.getNumContacts(); ++j) {
+                btManifoldPoint & contact = pair.getContactPoint(j);
+                if (contact.getDistance() < 0) {
+                    obj1.OnHit (obj2, contact.m_normalWorldOnB);
+                    obj2.OnHit (obj1, contact.m_normalWorldOnB);
+                }
+            }
+        }
+    }
 };
 
 plSimulationMgrImpl::Private * plSimulationMgrImpl::Private::instance = nullptr;
@@ -166,6 +184,6 @@ btDiscreteDynamicsWorld & plSimulationMgrImpl::GetOrCreateWorld (plKey worldKey)
     
     it->second.setGravity(btVector3(0, 0, -32.174049f));
     it->second.getPairCache()->setOverlapFilterCallback(&filter);
-    
+    it->second.setInternalTickCallback(Private::bulletTickCallback);
     return it->second;
 }
