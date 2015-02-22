@@ -66,7 +66,6 @@ plPhysicalControllerCore::plPhysicalControllerCore(plKey OwnerSceneObject, float
     fRadius(radius),
     fLOSDB(plSimDefs::kLOSDBNone),
     fMovementStrategy(nil),
-    fSimLength(0.0f),
     fLocalRotation(0.0f, 0.0f, 0.0f, 1.0f),
     fLocalPosition(0.0f, 0.0f, -2000.0f),
     fLastLocalPosition(0.0f, 0.0f, 0.0f),
@@ -119,8 +118,6 @@ void plPhysicalControllerCore::IncrementAngle(float deltaAngle)
 
 void plPhysicalControllerCore::IApply(float delSecs)
 {
-    fSimLength = delSecs;
-
     // Match controller to owner if transform has changed since the last frame
     plSceneObject* so = plSceneObject::ConvertNoRef(fOwner->ObjectIsLoaded());
     const hsMatrix44& l2w = so->GetCoordinateInterface()->GetLocalToWorld();
@@ -142,7 +139,7 @@ void plPhysicalControllerCore::IApply(float delSecs)
         fMovementStrategy->Apply(delSecs);
     }
 }
-void plPhysicalControllerCore::IUpdate(int numSubSteps, float alpha)
+void plPhysicalControllerCore::IUpdate(float delSecs, int numSubSteps, float alpha)
 {
     if (fEnabled)
     {
@@ -150,7 +147,7 @@ void plPhysicalControllerCore::IUpdate(int numSubSteps, float alpha)
         fLastLocalPosition = fLocalPosition;
         GetPositionSim(fLocalPosition);
         hsVector3 displacement = (hsVector3)(fLocalPosition - fLastLocalPosition);
-        fAchievedLinearVelocity = displacement / fSimLength;
+        fAchievedLinearVelocity = displacement / delSecs;
 
         displacement /= (float)numSubSteps;
         fLastLocalPosition = fLocalPosition - displacement;
@@ -167,7 +164,7 @@ void plPhysicalControllerCore::IUpdate(int numSubSteps, float alpha)
             fPrevSubworldW2L = subworldCI->GetWorldToLocal();
         }
 
-        fMovementStrategy->Update(fSimLength);
+        fMovementStrategy->Update(delSecs);
         ISendCorrectionMessages(true);
     }
     else

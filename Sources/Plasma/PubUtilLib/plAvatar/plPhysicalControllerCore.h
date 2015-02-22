@@ -161,7 +161,7 @@ protected:
     virtual void IHandleEnableChanged() = 0;
 
     void IApply(float delSecs);
-    void IUpdate(int numSubSteps, float alpha);
+    void IUpdate(float delSecs, int numSubSteps, float alpha);
     void IUpdateNonPhysical(float alpha);
 
     void ISendCorrectionMessages(bool dirtySynch = false);
@@ -175,8 +175,6 @@ protected:
     plSimDefs::plLOSDB fLOSDB;
 
     plMovementStrategy* fMovementStrategy;
-
-    float fSimLength;
 
     hsQuat fLocalRotation;
     hsPoint3 fLocalPosition;

@@ -531,7 +531,7 @@ void plSimulationMgrImpl::Advance(float delSecs)
         }
     }
 
-    plPXPhysicalControllerCore::Update(numSubSteps, fAccumulator / kDefaultStepSize);
+    plPXPhysicalControllerCore::Update(delSecs, numSubSteps, fAccumulator / kDefaultStepSize);
 
     plProfile_EndTiming(Step);
 #ifndef PLASMA_EXTERNAL_RELEASE

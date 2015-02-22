@@ -547,7 +547,7 @@ void plPXPhysicalControllerCore::Apply(float delSecs)
 
     gRebuildCache = false;
 }
-void plPXPhysicalControllerCore::Update(int numSubSteps, float alpha)
+void plPXPhysicalControllerCore::Update(float delSecs, int numSubSteps, float alpha)
 {
     gControllerMgr.updateControllers();
 
@@ -557,7 +557,7 @@ void plPXPhysicalControllerCore::Update(int numSubSteps, float alpha)
     {
         controller = gControllers[i];
 
-        controller->IUpdate(numSubSteps, alpha);
+        controller->IUpdate(delSecs, numSubSteps, alpha);
 
 #ifndef PLASMA_EXTERNAL_RELEASE
         if (fDebugDisplay)

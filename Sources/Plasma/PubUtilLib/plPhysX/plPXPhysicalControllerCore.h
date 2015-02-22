@@ -118,7 +118,7 @@ public:
     static void Apply(float delSecs);
 
     // Call post-sim to update controllers
-    static void Update(int numSubSteps, float alpha);
+    static void Update(float delSecs, int numSubSteps, float alpha);
 
     // Update controllers when not performing a physics step
     static void UpdateNonPhysical(float alpha);
