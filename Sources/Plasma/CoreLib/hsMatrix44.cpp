@@ -252,7 +252,7 @@ bool hsMatrix44::operator==(const hsMatrix44& ss) const
 }
 
 namespace {
-    template<class T> constexpr T diff(T val1, T val2)
+    template<class T> inline T diff(T val1, T val2)
     {
         return val1 > val2 ? val1 - val2 : val2 - val1;
     }

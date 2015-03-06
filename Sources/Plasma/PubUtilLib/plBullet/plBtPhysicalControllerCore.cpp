@@ -77,9 +77,9 @@ plBtPhysicalControllerCore::~plBtPhysicalControllerCore () {
 plBtPhysicalControllerCore::btControler::~btControler () {}
 
 struct plBtPhysicalControllerCore::Private {
-    static constexpr float kAvatarMass = 200;
-    static constexpr int kZAxis = 2;
-    static constexpr int kUpAxis = kZAxis;
+    static const int kAvatarMass = 200;
+    static const int kZAxis = 2;
+    static const int kUpAxis = kZAxis;
     
     static const unsigned short kKinematicMask =
         (1 << plSimDefs::kGroupAvatarKinematic)
@@ -290,6 +290,7 @@ int plBtPhysicalControllerCore::SweepControllerPath (
     const hsPoint3 & startPos, const hsPoint3 & endPos, bool vsDynamics,
     bool vsStatics, uint32_t & vsSimGroups, std::vector<plControllerSweepRecord> & hits
 ) {
+	return 0;
 }
 
 void plBtPhysicalControllerCore::LeaveAge () { SetSubworld (nullptr); }
