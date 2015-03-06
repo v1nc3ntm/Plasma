@@ -485,10 +485,10 @@ void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l,
 
 int plPhysicalImpl::GetGroup () const { return physic->group; }
 
-uint16_t plPhysicalImpl::GetAllLOSDBs ()             { return            physic->losdb ; }
-bool     plPhysicalImpl::  IsInLOSDB (uint16_t flag) { hsCheckBits(flag, physic->losdb); }
-void     plPhysicalImpl::   AddLOSDB (uint16_t flag) {   hsSetBits(flag, physic->losdb); }
-void     plPhysicalImpl::RemoveLOSDB (uint16_t flag) { hsClearBits(flag, physic->losdb); }
+uint16_t plPhysicalImpl::GetAllLOSDBs ()             { return                   physic->losdb ; }
+bool     plPhysicalImpl::  IsInLOSDB (uint16_t flag) { return hsCheckBits(flag, physic->losdb); }
+void     plPhysicalImpl::   AddLOSDB (uint16_t flag) {          hsSetBits(flag, physic->losdb); }
+void     plPhysicalImpl::RemoveLOSDB (uint16_t flag) {        hsClearBits(flag, physic->losdb); }
 
 plKey plPhysicalImpl::GetWorldKey () const { return physic->worldKey; }
 
