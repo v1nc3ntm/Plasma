@@ -252,7 +252,7 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         
         stream->Skip(28); // skip "NXS\x01MESH" 0 8 0,001 255 0
         uint32_t ptCount = stream->ReadLE32();
-        hsAssert (ptCount <= 0x100, "Invalid number of points in NXS.CVXM shape");
+        //hsAssert (ptCount <= 0x100, "Invalid number of points in NXS.CVXM shape");
         uint32_t count = stream->ReadLE32();
         
         btVector3 * pts = new btVector3[ptCount];

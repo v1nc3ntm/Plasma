@@ -42,10 +42,13 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "plBtDefs.h"
 #include "plPhysical/plSimulationMgr.h"
 #include "plSimulationMgrImpl.h"
+#include "plBtPhysicalControllerCore.h"
 
 #include "plAvatar/plPhysicalControllerCore.h"
+#include "plProfile.h"
 
 #include <map>
+#include <set>
 
 #include <BulletCollision/BroadphaseCollision/btDbvtBroadphase.h>
 #include <BulletCollision/CollisionDispatch/btCollisionDispatcher.h>
@@ -54,6 +57,8 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
 using namespace std;
+
+plProfile_CreateTimer(  "Step", "Simulation", Step);
 
 class plSimulationMgrImpl::Private : plSimulationMgrImpl {
 public:
@@ -114,6 +119,9 @@ public:
                 }
             }
         }
+        
+        for (auto ctrl: *(set<plBtPhysicalControllerCore *> *)world->getWorldUserInfo())
+            ctrl->Apply(timeStep);
     }
 };
 
@@ -140,8 +148,14 @@ void plSimulationMgr::Advance (float deltaSecs) {
     if (plSimulationMgrImpl::Private::instance->suspend)
         return;
     
-    for (auto & it: plSimulationMgrImpl::Private::instance->worlds)
-        it.second.stepSimulation(deltaSecs);  //, 60/minFps);
+    plProfile_BeginTiming(Step);
+    for (auto & it: plSimulationMgrImpl::Private::instance->worlds) {
+        int nbStep = it.second.stepSimulation(deltaSecs);  //, 60/minFps);
+        
+        for (auto ctrl : *(set<plBtPhysicalControllerCore *> *)it.second.getWorldUserInfo())
+            ctrl->Update(deltaSecs, nbStep);
+    }
+    plProfile_EndTiming(Step);
 }
 
 void plSimulationMgr::    Suspend () {        plSimulationMgrImpl::Private::instance->suspend = true ; }
@@ -184,6 +198,21 @@ btDiscreteDynamicsWorld & plSimulationMgrImpl::GetOrCreateWorld (plKey worldKey)
     
     it->second.setGravity(btVector3(0, 0, -32.174049f));
     it->second.getPairCache()->setOverlapFilterCallback(&filter);
-    it->second.setInternalTickCallback(Private::bulletTickCallback);
+    it->second.setInternalTickCallback(
+        Private::bulletTickCallback,
+        new set<plBtPhysicalControllerCore *>
+    );
+    
     return it->second;
 }
+
+void plSimulationMgrImpl::AddCtrl (plKey worldKey, plBtPhysicalControllerCore & ctrl) {
+    void * ctrlSet = GetOrCreateWorld(worldKey).getWorldUserInfo();
+    ((set<plBtPhysicalControllerCore *> *) ctrlSet)->insert(&ctrl);
+}
+
+void plSimulationMgrImpl::RemCtrl (plKey worldKey, plBtPhysicalControllerCore & ctrl) {
+    void * ctrlSet = GetOrCreateWorld(worldKey).getWorldUserInfo();
+    ((set<plBtPhysicalControllerCore *> *) ctrlSet)->erase(&ctrl);
+}
+

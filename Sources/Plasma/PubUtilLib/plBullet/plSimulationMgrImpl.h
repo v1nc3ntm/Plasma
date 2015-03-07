@@ -45,6 +45,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "pnKeyedObject/hsKeyedObject.h"
 
 class btDiscreteDynamicsWorld;
+class plBtPhysicalControllerCore;
 
 class plSimulationMgrImpl : public hsKeyedObject
 {
@@ -54,6 +55,9 @@ public:
     
     plSimulationMgrImpl ();
     static btDiscreteDynamicsWorld & GetOrCreateWorld (plKey worldKey);
+    
+    static void AddCtrl (plKey worldKey, plBtPhysicalControllerCore & ctrl);
+    static void RemCtrl (plKey worldKey, plBtPhysicalControllerCore & ctrl);
     
     class Private;
 };

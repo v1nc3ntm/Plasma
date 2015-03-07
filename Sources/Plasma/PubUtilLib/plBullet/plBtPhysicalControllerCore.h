@@ -87,8 +87,12 @@ public:
     
     virtual void LeaveAge ();
     
-    virtual void IHandleEnableChanged ();
-
+    ////////////////////////////////////////////
+    // plSimulationMgrImpl interface
+    
+    void Apply(float deltaSec);
+    void Update(float deltaSec, int nbSteps);
+    
     //////////////////////////////////////
     
     class Private;
@@ -102,5 +106,10 @@ private:
     btControler * ctrl;
     btCapsuleShape shape;
     
+    ////////////////////////////////////////////
+    // plPhysicalControllerCore implementation
+    
+    virtual void IHandleEnableChanged ();
+
 friend class plPhysicalControllerCore;
 };

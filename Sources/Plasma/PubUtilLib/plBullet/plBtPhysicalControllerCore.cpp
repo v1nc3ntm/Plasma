@@ -39,6 +39,7 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
       Mead, WA   99021
 
 *==LICENSE==*/
+#include "plAvatar/plAvDefs.h"
 #include "plBtPhysicalControllerCore.h"
 #include "plSimulationMgrImpl.h"
 #include "pnSceneObject/plCoordinateInterface.h"
@@ -80,13 +81,6 @@ struct plBtPhysicalControllerCore::btControler {
 };
 
 
-plBtPhysicalControllerCore::~plBtPhysicalControllerCore () {
-    if (ctrl) {
-        if (fWorldKey)
-            ctrl->RemoveFrom (plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
-        delete ctrl;
-    }
-}
 plBtPhysicalControllerCore::btControler::~btControler () {}
 
 struct plBtPhysicalControllerCore::Private {
@@ -202,7 +196,17 @@ plBtPhysicalControllerCore::plBtPhysicalControllerCore (plKey ownerSO, float hei
  : plPhysicalControllerCore(ownerSO, height, radius),
    ctrl (nullptr),
    shape (radius, height)
-{}
+{
+    plSimulationMgrImpl::AddCtrl(fWorldKey, *this);
+}
+
+plBtPhysicalControllerCore::~plBtPhysicalControllerCore() {
+    plSimulationMgrImpl::RemCtrl(fWorldKey, *this);
+    if (ctrl) {
+        ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
+        delete ctrl;
+    }
+}
 
 
 plKey               plBtPhysicalControllerCore::GetObjKey () const { return fOwner; }
@@ -240,11 +244,13 @@ void plBtPhysicalControllerCore::IHandleEnableChanged () {
 void plBtPhysicalControllerCore::SetSubworld (plKey world) {
     if (world != fWorldKey) {
         if (ctrl) {
-            if (fWorldKey)
-                ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
-            if (world)
-                ctrl->AddTo(plSimulationMgrImpl::GetOrCreateWorld(world));
+            ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
+            ctrl->AddTo(plSimulationMgrImpl::GetOrCreateWorld(world));
         }
+        
+        plSimulationMgrImpl::RemCtrl(fWorldKey, *this);
+        plSimulationMgrImpl::AddCtrl(world, *this);
+        
         fWorldKey = world;
     }
 }
@@ -267,14 +273,10 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
     
     if (!fMovementStrategy || fMovementStrategy->IsKinematic() != strategy->IsKinematic())
     {
-        btDiscreteDynamicsWorld * world;
-
-        if (fWorldKey)
-            world = &plSimulationMgrImpl::GetOrCreateWorld(fWorldKey);
+        btDiscreteDynamicsWorld & world = plSimulationMgrImpl::GetOrCreateWorld(fWorldKey);
         
         if (ctrl) {
-            if (fWorldKey)
-                ctrl->RemoveFrom(*world);
+            ctrl->RemoveFrom(world);
             delete ctrl;
         }
         
@@ -283,8 +285,7 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
         else
             ctrl = new Private::btDynamicControler(this, fLocalPosition, shape);
         
-        if (fWorldKey)
-            ctrl->AddTo(*world);
+        ctrl->AddTo(world);
     }
     
     fMovementStrategy = strategy;
@@ -316,4 +317,7 @@ int plBtPhysicalControllerCore::SweepControllerPath (
 
 void plBtPhysicalControllerCore::LeaveAge () { SetSubworld (nullptr); }
 
+
+void plBtPhysicalControllerCore::Apply (float deltaSec) { IApply(deltaSec); }
+void plBtPhysicalControllerCore::Update (float deltaSec, int nbSteps) { IUpdate(deltaSec, nbSteps, 0); } // alpha is the remain time: lest than 1/60s ??? useless?
 
