@@ -265,7 +265,27 @@ void plBtPhysicalControllerCore::GetState (hsPoint3 & pos, float & zRot) {
     pos = fLocalPosition;
 }
 void plBtPhysicalControllerCore::SetState (const hsPoint3 & pos, float zRot) {
-    
+    plSceneObject* so = plSceneObject::ConvertNoRef(fOwner->ObjectIsLoaded());
+    if (so) {
+        hsQuat worldRot;
+        hsVector3 zAxis(kAvatarUp.fX, kAvatarUp.fY, kAvatarUp.fZ);
+        worldRot.SetAngleAxis(zRot, zAxis);
+
+        hsMatrix44 l2w, w2l;
+        worldRot.MakeMatrix(&l2w);
+        l2w.SetTranslate(&pos);
+
+        // Localize new position and rotation to global coords if we're in a subworld
+        const plCoordinateInterface* ci = GetSubworldCI();
+        if (ci)
+        {
+            const hsMatrix44& subworldL2W = ci->GetLocalToWorld();
+            l2w = subworldL2W * l2w;
+        }
+        l2w.GetInverse(&w2l);
+        so->SetTransform(l2w, w2l);
+        so->FlushTransform();
+    }
 }
 
 void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strategy) {
@@ -292,6 +312,69 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
 }
 
 void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
+    fLastGlobalLoc = l2w;
+
+    // Update our local position and rotation
+    hsPoint3 prevPosition = fLocalPosition;
+    const plCoordinateInterface* subworldCI = GetSubworldCI();
+    if (subworldCI)
+    {
+        hsMatrix44 l2s = fPrevSubworldW2L * l2w;
+
+        l2s.GetTranslate(&fLocalPosition);
+        fLocalRotation.SetFromMatrix44(l2s);
+    }
+    else
+    {
+        l2w.GetTranslate(&fLocalPosition);
+        fLocalRotation.SetFromMatrix44(l2w);
+    }
+
+    fLastLocalPosition = fLocalPosition;
+
+//    if (fProxyGen)
+//    {
+//        hsMatrix44 w2l;
+//        l2w.GetInverse(&w2l);
+//        fProxyGen->SetTransform(l2w, w2l);
+//    }
+
+    // TODO: Update the physical position
+//    if (fKinematicCCT)
+//    {
+//        hsVector3 disp(&fLocalPosition, &prevPosition);
+//        if (disp.Magnitude() > 2.f)
+//        {
+//            // Teleport the underlying actor most of the way
+//            disp.Normalize();
+//            disp *= 0.001f;
+//
+//            hsPoint3 teleportPos = fLocalPosition - disp;
+//            NxVec3 pos(teleportPos.fX, teleportPos.fY, teleportPos.fZ + kPhysZOffset);
+//            fActor->setGlobalPosition(pos);
+//        }
+//
+//        NxExtendedVec3 extPos(fLocalPosition.fX, fLocalPosition.fY, fLocalPosition.fZ + kCCTZOffset);
+//        fController->setPosition(extPos);
+//    }
+//    else
+//    {
+//        NxVec3 pos(fLocalPosition.fX, fLocalPosition.fY, fLocalPosition.fZ + kPhysZOffset);
+//        if (fActor->readBodyFlag(NX_BF_KINEMATIC))
+//            fActor->moveGlobalPosition(pos);
+//        else
+//            fActor->setGlobalPosition(pos);
+//    }
+    
+    // TODO: check 
+//    ctrl->GetObj().SetWorldTransform(
+//        btMatrix3x3(
+//            l2w.fMap[0][0], l2w.fMap[0][1], l2w.fMap[0][2],
+//            l2w.fMap[1][0], l2w.fMap[1][1], l2w.fMap[1][2],
+//            l2w.fMap[2][0], l2w.fMap[2][1], l2w.fMap[2][2]
+//        ),
+//        btVector3 (l2w.fMap[3][0], l2w.fMap[3][1], l2w.fMap[3][2])
+//    );
 }
 
 void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
@@ -302,6 +385,8 @@ void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
 }
 
 void plBtPhysicalControllerCore::Move (hsVector3 displacement, unsigned int collideWith, unsigned int & collisionResults) {
+    ctrl->SetVelocity (displacement);
+    collisionResults = 0;
 }
 
 void plBtPhysicalControllerCore::SetLinearVelocitySim (const hsVector3 & vec) {
