@@ -444,23 +444,23 @@ void plPhysicalImpl::GetTransform (hsMatrix44 & l2w, hsMatrix44 & w2l) {
     
     // make 4x4 matrix from translation and 3x3 rotation matrix
     w2l.fMap[0][0] = r[0].x();
-    w2l.fMap[1][0] = r[1].x();
-    w2l.fMap[2][0] = r[2].x();
-    w2l.fMap[3][0] = o   .x();
+    w2l.fMap[0][1] = r[1].x();
+    w2l.fMap[0][2] = r[2].x();
+    w2l.fMap[0][3] = o.x();
     
-    w2l.fMap[0][1] = r[0].y();
+    w2l.fMap[1][0] = r[0].y();
     w2l.fMap[1][1] = r[1].y();
-    w2l.fMap[2][1] = r[2].y();
-    w2l.fMap[3][1] = o   .y();
+    w2l.fMap[1][2] = r[2].y();
+    w2l.fMap[1][3] = o.y();
     
-    w2l.fMap[0][2] = r[0].z();
-    w2l.fMap[1][2] = r[1].z();
+    w2l.fMap[2][0] = r[0].z();
+    w2l.fMap[2][1] = r[1].z();
     w2l.fMap[2][2] = r[2].z();
-    w2l.fMap[3][2] = o   .z();
+    w2l.fMap[2][3] = o.z();
     
-    w2l.fMap[0][3] = 0;
-    w2l.fMap[1][3] = 0;
-    w2l.fMap[2][3] = 0;
+    w2l.fMap[3][0] = 0;
+    w2l.fMap[3][1] = 0;
+    w2l.fMap[3][2] = 0;
     w2l.fMap[3][3] = 1;
     
     w2l.GetInverse(&l2w);
@@ -470,29 +470,29 @@ void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l,
     btMatrix3x3 & r = t.getBasis();
     btVector3   & o = t.getOrigin();
     
-    hsAssert(w2l.fMap[0][3] == 0, "invalid transform matrix");
-    hsAssert(w2l.fMap[1][3] == 0, "invalid transform matrix");
-    hsAssert(w2l.fMap[2][3] == 0, "invalid transform matrix");
+    hsAssert(w2l.fMap[3][0] == 0, "invalid transform matrix");
+    hsAssert(w2l.fMap[3][1] == 0, "invalid transform matrix");
+    hsAssert(w2l.fMap[3][2] == 0, "invalid transform matrix");
     hsAssert(w2l.fMap[3][3] == 1, "invalid transform matrix");
     
-    hsAssert(w2l.fMap[0][0] + w2l.fMap[1][0] + w2l.fMap[2][0] == 1.f, "scaling transform not supported by bullet");
-    hsAssert(w2l.fMap[0][1] + w2l.fMap[1][1] + w2l.fMap[2][1] == 1.f, "scaling transform not supported by bullet");
-    hsAssert(w2l.fMap[0][2] + w2l.fMap[1][2] + w2l.fMap[2][2] == 1.f, "scaling transform not supported by bullet");
+//    hsAssert(fabs(w2l.fMap[0][0] + w2l.fMap[0][1] + w2l.fMap[0][2]) == 1.f, "scaling transform not supported by bullet");
+//    hsAssert(fabs(w2l.fMap[1][0] + w2l.fMap[1][1] + w2l.fMap[1][2]) == 1.f, "scaling transform not supported by bullet");
+//    hsAssert(fabs(w2l.fMap[2][0] + w2l.fMap[2][1] + w2l.fMap[2][2]) == 1.f, "scaling transform not supported by bullet");
     
     r[0].setX(w2l.fMap[0][0]);
-    r[1].setX(w2l.fMap[1][0]);
-    r[2].setX(w2l.fMap[2][0]);
-    o   .setX(w2l.fMap[3][0]);
+    r[1].setX(w2l.fMap[0][1]);
+    r[2].setX(w2l.fMap[0][2]);
+    o   .setX(w2l.fMap[0][3]);
     
-    r[0].setY(w2l.fMap[0][1]);
+    r[0].setY(w2l.fMap[1][0]);
     r[1].setY(w2l.fMap[1][1]);
-    r[2].setY(w2l.fMap[2][1]);
-    o   .setY(w2l.fMap[3][1]);
+    r[2].setY(w2l.fMap[1][2]);
+    o   .setY(w2l.fMap[1][3]);
     
-    r[0].setZ(w2l.fMap[0][2]);
-    r[1].setZ(w2l.fMap[1][2]);
+    r[0].setZ(w2l.fMap[2][0]);
+    r[1].setZ(w2l.fMap[2][1]);
     r[2].setZ(w2l.fMap[2][2]);
-    o   .setZ(w2l.fMap[3][2]);
+    o   .setZ(w2l.fMap[2][3]);
 }
 
 int plPhysicalImpl::GetGroup () const { return physic->group; }
