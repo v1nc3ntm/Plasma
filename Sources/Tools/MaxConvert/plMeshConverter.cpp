@@ -89,6 +89,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 
 #include "plStatusLog/plStatusLog.h"
 
+#include <cmath>
+
+#if defined HS_BUILD_FOR_WIN32 && !defined __MINGW32__
+#define isnan _isnan
+#endif
+
+using namespace std;
+
 //// Static Members //////////////////////////////////////////////////////////
 
 bool    plMeshConverter::fWarnBadNormals = true;
@@ -1548,7 +1556,7 @@ int     plMeshConverter::IGenerateUVs( plMaxNode *node, Mtl *maxMtl, Mesh *mesh,
                 // even need to write it.
                 pt.Set( uv.x, 1.0f - uv.y, 0.f );
 
-                if( _isnan( (double)pt.fX ) || _isnan( (double)pt.fY ) || _isnan( (double)pt.fZ ) )
+                if( isnan( (double)pt.fX ) || isnan( (double)pt.fY ) || isnan( (double)pt.fZ ) )
                     pt.Set( 0, 0, 0 );
 
                 switch( j )

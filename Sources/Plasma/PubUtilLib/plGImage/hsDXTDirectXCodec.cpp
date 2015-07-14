@@ -78,6 +78,11 @@ enum
     D3DTEXTURE_FMT_FOURCC_DXT1                  = 0x00002000,       // No.14: DXTn FourCC (DXT1), format.
     D3DTEXTURE_FMT_FOURCC_DXT5                  = 0x00020000,       // No.18: DXTn FourCC (DXT5), format.
 };
+
+#   ifdef __MINGW32__
+#       define FOURCC_DXT1  0x31545844
+#       define FOURCC_DXT5  0x35545844
+#   endif
 #endif
 
 bool hsDXTDirectXCodec::fRegistered = false;

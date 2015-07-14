@@ -43,20 +43,19 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsWindows.h"
 #include <wchar.h>
 
-#ifdef _MSC_VER
+#ifdef HS_BUILD_FOR_WIN32
 #   include <crtdbg.h>
 #endif
 
 #pragma hdrstop
 
-#if defined(HS_DEBUGGING) && defined(HS_BUILD_FOR_UNIX)
-#   include <cstring>
-#   include <sys/stat.h>
-#   include <fcntl.h>
-#   include <unistd.h>
-#endif
-
-#if defined(HS_BUILD_FOR_UNIX)
+#ifdef HS_BUILD_FOR_UNIX
+#   ifdef HS_DEBUGGING
+#       include <cstring>
+#       include <sys/stat.h>
+#       include <fcntl.h>
+#       include <unistd.h>
+#   endif
 #   include <signal.h>
 #endif
 
@@ -104,16 +103,14 @@ void hsDebugMessage (const char* message, long val)
     if (gHSDebugProc)
         gHSDebugProc(&s[1]);
     else
-#if HS_BUILD_FOR_WIN32
     {
+#if HS_BUILD_FOR_WIN32
         OutputDebugString(&s[1]);
         OutputDebugString("\n");
-    }
 #else
-    {
         fprintf(stderr, "%s\n", &s[1]);
-    }
 #endif
+    }
 }
 #endif
 
@@ -130,14 +127,14 @@ void ErrorAssert(int line, const char* file, const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     vsnprintf(msg, arrsize(msg), fmt, args);
-#if defined(HS_DEBUGGING)
-#if defined(_MSC_VER)
+#   ifdef HS_DEBUGGING
+#       ifdef _MSC_VER
     if (s_GuiAsserts)
     {
         if (_CrtDbgReport(_CRT_ASSERT, file, line, NULL, msg))
             DebugBreakAlways();
     } else
-#endif // _MSC_VER
+#       endif // _MSC_VER
     {
         DebugMsg("-------\nASSERTION FAILED:\nFile: %s   Line: %i\nMessage: %s\n-------",
                  file, line, msg);
@@ -145,7 +142,7 @@ void ErrorAssert(int line, const char* file, const char* fmt, ...)
 
         DebugBreakAlways();
     }
-#endif // HS_DEBUGGING
+#   endif // HS_DEBUGGING
 #else
     DebugBreakIfDebuggerPresent();
 #endif // defined(HS_DEBUGGING) || !defined(PLASMA_EXTERNAL_RELEASE)
@@ -182,7 +179,7 @@ bool DebugIsDebuggerPresent()
 
 void DebugBreakIfDebuggerPresent()
 {
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
     __try
     {
         __debugbreak();
@@ -190,18 +187,16 @@ void DebugBreakIfDebuggerPresent()
         // Debugger not present or some such shwiz.
         // Whatever. Don't crash here.
     }
-#elif defined(HS_BUILD_FOR_UNIX)
-    if (DebugIsDebuggerPresent())
-        raise(SIGTRAP);
 #else
-    // FIXME
-#endif // _MSC_VER
+    if (DebugIsDebuggerPresent())
+        DebugBreakAlways();
+#endif
 }
 
 void DebugBreakAlways()
 {
-#if defined(_MSC_VER)
-    DebugBreak();
+#ifdef HS_BUILD_FOR_WIN32
+    __debugbreak();
 #elif defined(HS_BUILD_FOR_UNIX)
     raise(SIGTRAP);
 #else
@@ -218,7 +213,7 @@ void DebugMsg(const char* fmt, ...)
     vsnprintf(msg, arrsize(msg), fmt, args);
     fprintf(stderr, "%s\n", msg);
 
-#ifdef _MSC_VER
+#ifdef HS_BUILD_FOR_WIN32
     if (DebugIsDebuggerPresent())
     {
         // Also print to the MSVC Output window
