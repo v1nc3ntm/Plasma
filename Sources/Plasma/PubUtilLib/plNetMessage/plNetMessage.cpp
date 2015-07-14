@@ -246,7 +246,7 @@ int plNetMessage::PeekBuffer(const char* bufIn, int bufLen, uint32_t peekOptions
 void plNetMessage::IWriteClassIndex(hsStream* stream)
 {
     ClassIndexType classIndex=ClassIndex();
-    hsAssert(sizeof(classIndex)==sizeof(plNetMessageClassIndex), "somebody changed the size of plCreatable::ClassIndex");
+    hsAssert(sizeof(classIndex)==sizeof(plNetMessageClassIndex()), "somebody changed the size of plCreatable::ClassIndex");
     stream->WriteLE(classIndex);
 }
 
@@ -279,7 +279,7 @@ int plNetMessage::IPokeBuffer(hsStream* stream, uint32_t peekOptions)
 void plNetMessage::IReadClassIndex(hsStream* stream)
 {
     ClassIndexType classIndex;
-    hsAssert(sizeof(classIndex)==sizeof(plNetMessageClassIndex), "somebody changed the size of plCreatable::ClassIndex");
+    hsAssert(sizeof(classIndex)==sizeof(plNetMessageClassIndex()), "somebody changed the size of plCreatable::ClassIndex");
     stream->LogReadLE(&classIndex,"ClassIndex");
 }
 
