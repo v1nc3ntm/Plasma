@@ -1864,13 +1864,13 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     chunk->fFlags = IFindLastAlignment();
                     while( IGetNextOption( c, name, option ) )
                     {
-                        if( wcsicmp( name, L"align" ) == 0 )
+                        if( _wcsicmp( name, L"align" ) == 0 )
                         {
-                            if( wcsicmp( option, L"left" ) == 0 )
+                            if( _wcsicmp( option, L"left" ) == 0 )
                                 chunk->fFlags = pfEsHTMLChunk::kLeft;
-                            else if( wcsicmp( option, L"center" ) == 0 )
+                            else if( _wcsicmp( option, L"center" ) == 0 )
                                 chunk->fFlags = pfEsHTMLChunk::kCenter;
-                            else if( wcsicmp( option, L"right" ) == 0 )
+                            else if( _wcsicmp( option, L"right" ) == 0 )
                                 chunk->fFlags = pfEsHTMLChunk::kRight;
                         }
                     }
@@ -1883,32 +1883,32 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     chunk = new pfEsHTMLChunk( nil, 0 );
                     while( IGetNextOption( c, name, option ) )
                     {
-                        if( wcsicmp( name, L"align" ) == 0 )
+                        if( _wcsicmp( name, L"align" ) == 0 )
                         {
                             chunk->fFlags &= ~pfEsHTMLChunk::kAlignMask;
-                            if( wcsicmp( option, L"left" ) == 0 )
+                            if( _wcsicmp( option, L"left" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kLeft;
-                            else if( wcsicmp( option, L"center" ) == 0 )
+                            else if( _wcsicmp( option, L"center" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kCenter;
-                            else if( wcsicmp( option, L"right" ) == 0 )
+                            else if( _wcsicmp( option, L"right" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kRight;
                         }
-                        else if( wcsicmp( name, L"src" ) == 0 )
+                        else if( _wcsicmp( name, L"src" ) == 0 )
                         {
                             // Name of mipmap source
                             chunk->fImageKey = IGetMipmapKey( option, hintLoc );
                         }
-                        else if( wcsicmp( name, L"link" ) == 0 )
+                        else if( _wcsicmp( name, L"link" ) == 0 )
                         {
                             chunk->fEventID = wcstol(option, NULL, 0);
                             chunk->fFlags |= pfEsHTMLChunk::kCanLink;
                         }
-                        else if( wcsicmp( name, L"blend" ) == 0 )
+                        else if( _wcsicmp( name, L"blend" ) == 0 )
                         {
-                            if( wcsicmp( option, L"alpha" ) == 0 )
+                            if( _wcsicmp( option, L"alpha" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kBlendAlpha;
                         }
-                        else if( wcsicmp( name, L"pos" ) == 0 )
+                        else if( _wcsicmp( name, L"pos" ) == 0 )
                         {
                             chunk->fFlags |= pfEsHTMLChunk::kFloating;
 
@@ -1921,7 +1921,7 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                             }
                             chunk->fAbsoluteX = wcstol(option, NULL, 0);
                         }
-                        else if( wcsicmp( name, L"glow" ) == 0 )
+                        else if( _wcsicmp( name, L"glow" ) == 0 )
                         {
                             chunk->fFlags |= pfEsHTMLChunk::kGlowing;
                             chunk->fFlags &= ~pfEsHTMLChunk::kActAsCB;
@@ -1942,14 +1942,14 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                             chunk->fSFXTime = (float)atof( cOption );
                             delete [] cOption;
                         }
-                        else if( wcsicmp( name, L"opacity" ) == 0 )
+                        else if( _wcsicmp( name, L"opacity" ) == 0 )
                         {
                             chunk->fFlags |= pfEsHTMLChunk::kTranslucent;
                             char *cOption = hsWStringToString(option);
                             chunk->fCurrOpacity = (float)atof( cOption );
                             delete [] cOption;
                         }
-                        else if( wcsicmp( name, L"check" ) == 0 )
+                        else if( _wcsicmp( name, L"check" ) == 0 )
                         {
                             chunk->fFlags |= pfEsHTMLChunk::kActAsCB;
                             chunk->fFlags &= ~pfEsHTMLChunk::kGlowing;
@@ -1980,9 +1980,9 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                             else
                                 chunk->fCurrColor = chunk->fOffColor;
                         }
-                        else if (wcsicmp(name,L"resize")==0)
+                        else if (_wcsicmp(name,L"resize")==0)
                         {
-                            if (wcsicmp(option,L"no")==0)
+                            if (_wcsicmp(option,L"no")==0)
                                 chunk->fNoResizeImg = true;
                         }
                     }
@@ -2001,7 +2001,7 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     c += 6;
                     while( IGetNextOption( c, name, option ) )
                     {
-                        if( wcsicmp( name, L"src" ) == 0 )
+                        if( _wcsicmp( name, L"src" ) == 0 )
                         {
                             // Name of mipmap source
                             anotherKey = IGetMipmapKey( option, hintLoc );
@@ -2011,14 +2011,14 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                                 fCoverFromHTML = true;
                             }
                         }
-                        if( wcsicmp( name, L"tint" ) == 0 )
+                        if( _wcsicmp( name, L"tint" ) == 0 )
                         {
                             fTintCover = true;
                             fCoverTint.FromARGB32( wcstol( option, nil, 16 ) | 0xff000000 );
                         }
-                        if( wcsicmp( name, L"tintfirst" ) == 0 )
+                        if( _wcsicmp( name, L"tintfirst" ) == 0 )
                         {
-                            if (wcsicmp(option,L"no")==0)
+                            if (_wcsicmp(option,L"no")==0)
                                 fTintFirst = false;
                         }
                     }
@@ -2044,20 +2044,20 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     chunk = new pfEsHTMLChunk( nil, 0, 0 );
                     while( IGetNextOption( c, name, option ) )
                     {
-                        if( wcsicmp( name, L"style" ) == 0 )
+                        if( _wcsicmp( name, L"style" ) == 0 )
                         {
                             uint8_t guiFlags = 0;
-                            if( wcsicmp( option, L"b" ) == 0 )
+                            if( _wcsicmp( option, L"b" ) == 0 )
                             {
                                 chunk->fFlags = pfEsHTMLChunk::kFontBold;
                                 guiFlags = plDynamicTextMap::kFontBold;
                             }
-                            else if( wcsicmp( option, L"i" ) == 0 )
+                            else if( _wcsicmp( option, L"i" ) == 0 )
                             {
                                 chunk->fFlags = pfEsHTMLChunk::kFontItalic;
                                 guiFlags = plDynamicTextMap::kFontItalic;
                             }
-                            else if( wcsicmp( option, L"bi" ) == 0 )
+                            else if( _wcsicmp( option, L"bi" ) == 0 )
                             {
                                 chunk->fFlags = pfEsHTMLChunk::kFontBold | pfEsHTMLChunk::kFontItalic;
                                 guiFlags = plDynamicTextMap::kFontBold | plDynamicTextMap::kFontItalic;
@@ -2072,7 +2072,7 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                                 fBookGUIs[fCurBookGUI]->GetEditCtrl(pfJournalDlgProc::kTagTurnBackEditCtrl)->SetFontStyle(guiFlags);
                             }
                         }
-                        else if( wcsicmp( name, L"face" ) == 0 )
+                        else if( _wcsicmp( name, L"face" ) == 0 )
                         {
                             // Name of mipmap source
                             chunk->fText = option;
@@ -2086,7 +2086,7 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                                 delete [] fontFace;
                             }
                         }
-                        else if( wcsicmp( name, L"size" ) == 0 )
+                        else if( _wcsicmp( name, L"size" ) == 0 )
                         {
                             chunk->fFontSize = wcstol(option, NULL, 0);
                             if (fBookGUIs[fCurBookGUI]->IsEditable())
@@ -2097,7 +2097,7 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                                 fBookGUIs[fCurBookGUI]->GetEditCtrl(pfJournalDlgProc::kTagTurnBackEditCtrl)->SetFontSize(chunk->fFontSize);
                             }
                         }
-                        else if( wcsicmp( name, L"color" ) == 0 )
+                        else if( _wcsicmp( name, L"color" ) == 0 )
                         {
                             chunk->fColor.FromARGB32( wcstol( option, nil, 16 ) | 0xff000000 );
                             chunk->fFlags |= pfEsHTMLChunk::kFontColor;
@@ -2109,7 +2109,7 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                                 fBookGUIs[fCurBookGUI]->GetEditCtrl(pfJournalDlgProc::kTagTurnBackEditCtrl)->SetFontColor(chunk->fColor);
                             }
                         }
-                        else if( wcsicmp( name, L"spacing" ) == 0 )
+                        else if( _wcsicmp( name, L"spacing" ) == 0 )
                         {
                             chunk->fLineSpacing = wcstol(option, NULL, 0);
                             chunk->fFlags |= pfEsHTMLChunk::kFontSpacing;
@@ -2125,13 +2125,13 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     c += 7;
                     while(IGetNextOption(c,name,option))
                     {
-                        if (wcsicmp(name,L"top") == 0)
+                        if (_wcsicmp(name,L"top") == 0)
                             fPageTMargin = wcstol(option, NULL, 0);
-                        else if (wcsicmp(name,L"left") == 0)
+                        else if (_wcsicmp(name,L"left") == 0)
                             fPageLMargin = wcstol(option, NULL, 0);
-                        else if (wcsicmp(name,L"bottom") == 0)
+                        else if (_wcsicmp(name,L"bottom") == 0)
                             fPageBMargin = wcstol(option, NULL, 0);
-                        else if (wcsicmp(name,L"right") == 0)
+                        else if (_wcsicmp(name,L"right") == 0)
                             fPageRMargin = wcstol(option, NULL, 0);
                     }
                     // set the edit controls to the margins we just set
@@ -2152,13 +2152,13 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     // don't actually create a chunk, just set the book size
                     while (IGetNextOption(c,name,option))
                     {
-                        if (wcsicmp(name,L"height") == 0)
+                        if (_wcsicmp(name,L"height") == 0)
                         {
                             char *temp = hsWStringToString(option);
                             bookHeight = (float)atof(temp);
                             delete [] temp;
                         }
-                        else if (wcsicmp(name,L"width") == 0)
+                        else if (_wcsicmp(name,L"width") == 0)
                         {
                             char *temp = hsWStringToString(option);
                             bookWidth = (float)atof(temp);
@@ -2179,22 +2179,22 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     chunk->fType = pfEsHTMLChunk::kDecal;
                     while( IGetNextOption( c, name, option ) )
                     {
-                        if( wcsicmp( name, L"align" ) == 0 )
+                        if( _wcsicmp( name, L"align" ) == 0 )
                         {
                             chunk->fFlags &= ~pfEsHTMLChunk::kAlignMask;
-                            if( wcsicmp( option, L"left" ) == 0 )
+                            if( _wcsicmp( option, L"left" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kLeft;
-                            else if( wcsicmp( option, L"center" ) == 0 )
+                            else if( _wcsicmp( option, L"center" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kCenter;
-                            else if( wcsicmp( option, L"right" ) == 0 )
+                            else if( _wcsicmp( option, L"right" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kRight;
                         }
-                        else if( wcsicmp( name, L"src" ) == 0 )
+                        else if( _wcsicmp( name, L"src" ) == 0 )
                         {
                             // Name of mipmap source
                             chunk->fImageKey = IGetMipmapKey( option, hintLoc );
                         }
-                        else if( wcsicmp( name, L"pos" ) == 0 )
+                        else if( _wcsicmp( name, L"pos" ) == 0 )
                         {
                             chunk->fFlags |= pfEsHTMLChunk::kFloating;
 
@@ -2207,14 +2207,14 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                             }
                             chunk->fAbsoluteX = wcstol(option, NULL, 0);
                         }
-                        else if (wcsicmp(name,L"resize")==0)
+                        else if (_wcsicmp(name,L"resize")==0)
                         {
-                            if (wcsicmp(option,L"no")==0)
+                            if (_wcsicmp(option,L"no")==0)
                                 chunk->fNoResizeImg = true;
                         }
-                        else if (wcsicmp(name,L"tint")==0)
+                        else if (_wcsicmp(name,L"tint")==0)
                         {
-                            if (wcsicmp(option,L"yes")==0)
+                            if (_wcsicmp(option,L"yes")==0)
                                 chunk->fTintDecal = true;
                         }
                     }
@@ -2234,26 +2234,26 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                     chunk->fType = pfEsHTMLChunk::kMovie;
                     while( IGetNextOption( c, name, option ) )
                     {
-                        if( wcsicmp( name, L"align" ) == 0 )
+                        if( _wcsicmp( name, L"align" ) == 0 )
                         {
                             chunk->fFlags &= ~pfEsHTMLChunk::kAlignMask;
-                            if( wcsicmp( option, L"left" ) == 0 )
+                            if( _wcsicmp( option, L"left" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kLeft;
-                            else if( wcsicmp( option, L"center" ) == 0 )
+                            else if( _wcsicmp( option, L"center" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kCenter;
-                            else if( wcsicmp( option, L"right" ) == 0 )
+                            else if( _wcsicmp( option, L"right" ) == 0 )
                                 chunk->fFlags |= pfEsHTMLChunk::kRight;
                         }
-                        else if( wcsicmp( name, L"src" ) == 0 )
+                        else if( _wcsicmp( name, L"src" ) == 0 )
                         {
                             chunk->fText = option;
                         }
-                        else if( wcsicmp( name, L"link" ) == 0 )
+                        else if( _wcsicmp( name, L"link" ) == 0 )
                         {
                             chunk->fEventID = wcstol(option, NULL, 0);
                             chunk->fFlags |= pfEsHTMLChunk::kCanLink;
                         }
-                        else if( wcsicmp( name, L"pos" ) == 0 )
+                        else if( _wcsicmp( name, L"pos" ) == 0 )
                         {
                             chunk->fFlags |= pfEsHTMLChunk::kFloating;
 
@@ -2266,19 +2266,19 @@ bool    pfJournalBook::ICompileSource( const wchar_t *source, const plLocation &
                             }
                             chunk->fAbsoluteX = wcstol(option, NULL, 0);
                         }
-                        else if (wcsicmp(name,L"resize")==0)
+                        else if (_wcsicmp(name,L"resize")==0)
                         {
-                            if (wcsicmp(option,L"no")==0)
+                            if (_wcsicmp(option,L"no")==0)
                                 chunk->fNoResizeImg = true;
                         }
-                        else if (wcsicmp(name,L"oncover")==0)
+                        else if (_wcsicmp(name,L"oncover")==0)
                         {
-                            if (wcsicmp(option,L"yes")==0)
+                            if (_wcsicmp(option,L"yes")==0)
                                 chunk->fOnCover = true;
                         }
-                        else if (wcsicmp(name,L"loop")==0)
+                        else if (_wcsicmp(name,L"loop")==0)
                         {
-                            if (wcsicmp(option,L"no")==0)
+                            if (_wcsicmp(option,L"no")==0)
                                 chunk->fLoopMovie = false;
                         }
                     }
@@ -2385,7 +2385,7 @@ uint8_t   pfJournalBook::IGetTagType( const wchar_t *string )
     uint32_t i;
     for( i = 0; tags[ i ].fTag != nil; i++ )
     {
-        if( wcsnicmp( string + 1, tags[ i ].fTag, wcslen( tags[ i ].fTag ) ) == 0 )
+        if( _wcsnicmp( string + 1, tags[ i ].fTag, wcslen( tags[ i ].fTag ) ) == 0 )
         {
             // Found tag--but only space or end tag marker allowed afterwards
             char end = (char)string[ wcslen( tags[ i ].fTag ) + 1 ];

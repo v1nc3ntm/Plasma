@@ -725,7 +725,7 @@ static unsigned THREADCALL ListenThreadProc (AsyncThread *) {
         }
 
         // wait for connection or timeout
-        const struct timeval timeout = { 0, 250*1000 }; // seconds, microseconds
+        struct timeval timeout = { 0, 250*1000 }; // seconds, microseconds
         int result = select(0, &readfds, &writefds, 0, &timeout);
         if (result == SOCKET_ERROR) {
             LogMsg(kLogError, "socket select failed");

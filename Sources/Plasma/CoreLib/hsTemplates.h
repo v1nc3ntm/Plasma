@@ -76,6 +76,8 @@ public:
 
 #endif  
 
+template <class T> void hsLargeArray_CopyForward(const T src[], T dst[], int count);
+
 // Use this for a pointer to a single object of class T allocated with new
 template <class T> class hsTempObject {
     T*  fObject;

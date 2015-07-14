@@ -212,36 +212,38 @@ static inline void inlCopy(uint8_t*& src, uint8_t*& dst)
     dst += sizeof(T);
 }
 
-template<typename T>
-static inline const uint8_t* inlExtract(const uint8_t* src, T* val)
-{
-    const T* ptr = reinterpret_cast<const T*>(src);
-    *val = *ptr++;
-    return reinterpret_cast<const uint8_t*>(ptr);
-}
+namespace {
+    template<typename T>
+    inline const uint8_t* inlExtract(const uint8_t* src, T* val)
+    {
+        const T* ptr = reinterpret_cast<const T*>(src);
+        *val = *ptr++;
+        return reinterpret_cast<const uint8_t*>(ptr);
+    }
 
-template<>
-static inline const uint8_t* inlExtract<hsPoint3>(const uint8_t* src, hsPoint3* val)
-{
-    const float* src_ptr = reinterpret_cast<const float*>(src);
-    float* dst_ptr = reinterpret_cast<float*>(val);
-    *dst_ptr++ = *src_ptr++;
-    *dst_ptr++ = *src_ptr++;
-    *dst_ptr++ = *src_ptr++;
-    *dst_ptr = 1.f;
-    return reinterpret_cast<const uint8_t*>(src_ptr);
-}
+    template<>
+    inline const uint8_t* inlExtract<hsPoint3>(const uint8_t* src, hsPoint3* val)
+    {
+        const float* src_ptr = reinterpret_cast<const float*>(src);
+        float* dst_ptr = reinterpret_cast<float*>(val);
+        *dst_ptr++ = *src_ptr++;
+        *dst_ptr++ = *src_ptr++;
+        *dst_ptr++ = *src_ptr++;
+        *dst_ptr = 1.f;
+        return reinterpret_cast<const uint8_t*>(src_ptr);
+    }
 
-template<>
-static inline const uint8_t* inlExtract<hsVector3>(const uint8_t* src, hsVector3* val)
-{
-    const float* src_ptr = reinterpret_cast<const float*>(src);
-    float* dst_ptr = reinterpret_cast<float*>(val);
-    *dst_ptr++ = *src_ptr++;
-    *dst_ptr++ = *src_ptr++;
-    *dst_ptr++ = *src_ptr++;
-    *dst_ptr = 0.f;
-    return reinterpret_cast<const uint8_t*>(src_ptr);
+    template<>
+    inline const uint8_t* inlExtract<hsVector3>(const uint8_t* src, hsVector3* val)
+    {
+        const float* src_ptr = reinterpret_cast<const float*>(src);
+        float* dst_ptr = reinterpret_cast<float*>(val);
+        *dst_ptr++ = *src_ptr++;
+        *dst_ptr++ = *src_ptr++;
+        *dst_ptr++ = *src_ptr++;
+        *dst_ptr = 0.f;
+        return reinterpret_cast<const uint8_t*>(src_ptr);
+    }
 }
 
 template<typename T, size_t N>
@@ -2615,7 +2617,8 @@ bool  plDXPipeline::PreRender( plDrawable* drawable, hsTArray<int16_t>& visList,
         int i;
         for( i = 0; i < bndList.GetCount(); i++ )
         {
-            IAddBoundsSpan( fBoundsSpans, &hsBounds3Ext(drawable->GetSpaceTree()->GetNode(bndList[i]).GetWorldBounds()), 0xff000000 | (0xf << ((fSettings.fBoundsDrawLevel % 6) << 2)) );
+            auto tmp = hsBounds3Ext(drawable->GetSpaceTree()->GetNode(bndList[i]).GetWorldBounds());
+            IAddBoundsSpan( fBoundsSpans, &tmp, 0xff000000 | (0xf << ((fSettings.fBoundsDrawLevel % 6) << 2)) );
         }
     }
 #endif // MF_BOUNDS_LEVEL_ICE
@@ -7640,7 +7643,8 @@ void plDXPipeline::ISetBumpMatrices(const plLayerInterface* layer, const plSpan*
     float uvwScale = kUVWScale;
     if( fLayerState[0].fBlendFlags & hsGMatState::kBlendAdd )
     {
-        hsVector3 cam2span(&GetViewPositionWorld(), &spanPos);
+        auto tmp = GetViewPositionWorld();
+        hsVector3 cam2span(&tmp, &spanPos);
         hsFastMath::NormalizeAppr(cam2span);
         liDir += cam2span;
         hsFastMath::NormalizeAppr(liDir);

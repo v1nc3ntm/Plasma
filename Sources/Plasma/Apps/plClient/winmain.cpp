@@ -166,7 +166,7 @@ static void AuthFailedStrings (ENetError authError,
                                          const char **ppStr1, const char **ppStr2,
                                          const wchar_t **ppWStr);
 
-void DebugMsgF(const char* format, ...);
+static void DebugMsgF(const char* format, ...);
 
 // Handles all the windows messages we might receive
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
