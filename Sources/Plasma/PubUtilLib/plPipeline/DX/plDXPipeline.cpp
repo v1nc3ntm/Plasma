@@ -13601,7 +13601,7 @@ void plDXPipeline::IRenderShadowsOntoSpan(const plRenderPrimFunc& render, const 
                 if( selfShadowNow )
                 {
                     plConst(float) kMaxSelfPower = 0.3f;
-                    float power = fShadows[i]->fPower > kMaxSelfPower ? kMaxSelfPower : fShadows[i]->fPower;
+                    float power = std::min<float>(fShadows[i]->fPower, kMaxSelfPower);
                     lRef->fD3DInfo.Diffuse.r 
                         = lRef->fD3DInfo.Diffuse.g 
                         = lRef->fD3DInfo.Diffuse.b

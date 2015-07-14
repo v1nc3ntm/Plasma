@@ -298,7 +298,7 @@ void plDispatch::IMsgDispatch()
         if( fMsgWatch.kMissingIndex != watchIdx )
         {
             fMsgWatch.Remove(watchIdx);
-#if HS_BUILD_FOR_WIN32
+#if HS_BUILD_FOR_WIN32 && !__MINGW32__
             __asm { int 3 }
 #endif // HS_BUILD_FOR_WIN32
         }
