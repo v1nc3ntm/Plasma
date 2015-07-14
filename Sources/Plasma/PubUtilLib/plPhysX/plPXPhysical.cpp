@@ -41,7 +41,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plPXPhysical.h"
 
+#ifdef __MINGW32__
+#   define NX_CALL_CONV __cdecl
+#   define LINUX 1
+#endif
 #include <NxPhysics.h>
+#ifdef __MINGW32__
+#   undef LINUX
+#endif
 
 #include "hsResMgr.h"
 #include "hsStream.h"
@@ -619,7 +626,7 @@ void plPXPhysical::SendNewLocation(bool synchTransform, bool isSynchUpdate)
 
                 hsMatrix44 w2l;
                 fCachedLocal2World.GetInverse(&w2l);
-                plCorrectionMsg *pCorrMsg = new plCorrectionMsg(GetObjectKey(), fCachedLocal2World, w2l, synchTransform);
+                plCorrectionMsg *pCorrMsg = new plCorrectionMsg(fObjectKey, fCachedLocal2World, w2l, synchTransform);
                 pCorrMsg->Send();
                 if (fProxyGen)
                     fProxyGen->SetTransform(fCachedLocal2World, w2l);

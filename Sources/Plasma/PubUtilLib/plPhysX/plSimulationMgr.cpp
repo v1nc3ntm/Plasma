@@ -41,7 +41,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 *==LICENSE==*/
 #include "plSimulationMgr.h"
 
+#ifdef __MINGW32__
+#   define NX_CALL_CONV __cdecl
+#   define LINUX 1
+#endif
 #include <NxPhysics.h>
+#ifdef __MINGW32__
+#   undef LINUX
+#endif
 
 #include <algorithm>
 

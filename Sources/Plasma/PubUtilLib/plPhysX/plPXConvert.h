@@ -46,9 +46,16 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsQuat.h"
 #include "hsMatrix44.h"
 
+#ifdef __MINGW32__
+#   define NX_CALL_CONV __cdecl
+#   define LINUX 1
+#endif
 #include <NxVec3.h>
 #include <NxQuat.h>
 #include <NxMat34.h>
+#ifdef __MINGW32__
+#   undef LINUX
+#endif
 
 // Converts to and from the PhysX types
 namespace plPXConvert
