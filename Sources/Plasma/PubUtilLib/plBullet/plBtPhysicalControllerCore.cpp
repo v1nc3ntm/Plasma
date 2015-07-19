@@ -49,6 +49,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <BulletDynamics/Character/btKinematicCharacterController.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
+#include <windows.h>
+#include <cstdarg>
+
 namespace
 {
     template<class T>
@@ -68,6 +71,23 @@ namespace
     private:
         T * ptr;
     };
+    
+    
+    void dprintf (const char * fmt, ...) {
+        static char buffer[1024];
+        va_list args;
+        va_start(args, fmt);
+        int n = vsnprintf (buffer, sizeof(buffer)-1, fmt, args);
+        va_end(args);
+        if (n >= 0) {
+            if (n >= sizeof(buffer)-1)
+                n = sizeof(buffer)-2;
+            buffer[n+0] = '\n';
+            buffer[n+1] = '\0';
+        }
+        
+        OutputDebugString (buffer);
+    }
 }
 
 struct plBtPhysicalControllerCore::btControler {
@@ -105,11 +125,14 @@ struct plBtPhysicalControllerCore::Private {
         
         btKinematicControler (plBtDefs::ObjectData * data, hsPoint3 & pos, btCapsuleShape & shape)
          : ctrl(&ghost, &shape, kSlopeLimit, kUpAxis) {
+            dprintf ("btKinematicControler (0x%X)", this);
             ghost.setUserPointer(data);
             ghost.setCollisionShape(&shape);
         }
         
-        virtual ~btKinematicControler () {}
+        virtual ~btKinematicControler () {
+            dprintf ("~btKinematicControler (0x%X)", this);
+        }
         
         virtual btCollisionObject & GetObj () { return ghost; }
         
@@ -133,11 +156,14 @@ struct plBtPhysicalControllerCore::Private {
         btDynamicControler (plBtDefs::ObjectData * data, hsPoint3 & pos, btCapsuleShape & shape)
          : body(createInfos(pos, shape))
         {
+            dprintf ("btDynamicControler (0x%X)", this);
             body.setAngularFactor(0); // disable rotation
             body.setUserPointer (data);
         }
         
-        virtual ~btDynamicControler () {}
+        virtual ~btDynamicControler () {
+            dprintf ("~btDynamicControler (0x%X)", this);
+        }
         
         AutoRef<btRigidBody::btRigidBodyConstructionInfo> createInfos (hsPoint3 & pos, btCapsuleShape & shape) {
             AutoRef<btRigidBody::btRigidBodyConstructionInfo> result(kAvatarMass, nullptr, &shape);
@@ -197,10 +223,12 @@ plBtPhysicalControllerCore::plBtPhysicalControllerCore (plKey ownerSO, float hei
    ctrl (nullptr),
    shape (radius, height)
 {
+    dprintf ("plBtPhysicalControllerCore (0x%X)", this);
     plSimulationMgrImpl::AddCtrl(fWorldKey, *this);
 }
 
 plBtPhysicalControllerCore::~plBtPhysicalControllerCore() {
+    dprintf ("~plBtPhysicalControllerCore (0x%X, ctrl=0x%X, world=0x%X)", this, ctrl, (void*)fWorldKey);
     plSimulationMgrImpl::RemCtrl(fWorldKey, *this);
     if (ctrl) {
         ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
@@ -217,6 +245,7 @@ void plBtPhysicalControllerCore::OnHit (
     const ObjectData &,
     const btVector3 & normal
 ) const {
+    dprintf ("plBtPhysicalControllerCore::OnHit (0x%X, x=%i, y=%i, z=%i)", this, normal.x(), normal.y(), normal.z());
     hsVector3 n(normal.x(), normal.y(), normal.z());
     fMovementStrategy->AddContactNormals (n);
 }
@@ -224,6 +253,7 @@ void plBtPhysicalControllerCore::OnHit (
 void plBtPhysicalControllerCore::Enable (bool enable) {
     if (fEnabled != enable)
     {
+        dprintf ("plBtPhysicalControllerCore::enable (0x%X, enable=%i)", this, enable);
         fEnabled = enable;
         if (fEnabled)
             // Defer until the next physics update.
@@ -236,20 +266,26 @@ void plBtPhysicalControllerCore::Enable (bool enable) {
 }
 
 void plBtPhysicalControllerCore::IHandleEnableChanged () {
+    dprintf ("plBtPhysicalControllerCore::IHandleEnableChanged (0x%X)", this);
     fEnableChanged = false;
     ctrl->SetEnable (true);
 }
 
 
 void plBtPhysicalControllerCore::SetSubworld (plKey world) {
+    dprintf ("plBtPhysicalControllerCore::SetSubworld (0x%X, world=0x%X, fWorldKey=0x%X)", this, (void*)world, (void*)fWorldKey);
     if (world != fWorldKey) {
         if (ctrl) {
-            ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
-            ctrl->AddTo(plSimulationMgrImpl::GetOrCreateWorld(world));
+            if (fWorldKey)
+                ctrl->RemoveFrom(plSimulationMgrImpl::GetOrCreateWorld(fWorldKey));
+            if (world)
+                ctrl->AddTo(plSimulationMgrImpl::GetOrCreateWorld(world));
         }
         
-        plSimulationMgrImpl::RemCtrl(fWorldKey, *this);
-        plSimulationMgrImpl::AddCtrl(world, *this);
+        if (fWorldKey)
+            plSimulationMgrImpl::RemCtrl(fWorldKey, *this);
+        if (world)
+            plSimulationMgrImpl::AddCtrl(world, *this);
         
         fWorldKey = world;
     }
@@ -263,8 +299,10 @@ void plBtPhysicalControllerCore::GetState (hsPoint3 & pos, float & zRot) {
         zRot = (2 * float(M_PI)) - zRot; // axis is backwards, so reverse the angle too
 
     pos = fLocalPosition;
+    dprintf ("plBtPhysicalControllerCore::GetState (0x%X, x=%i, y=%i, z=%i, r=%i))", this, pos.fX, pos.fY, pos.fZ, zRot);
 }
 void plBtPhysicalControllerCore::SetState (const hsPoint3 & pos, float zRot) {
+    dprintf ("plBtPhysicalControllerCore::SetState (0x%X, x=%i, y=%i, z=%i, r=%i))", this, pos.fX, pos.fY, pos.fZ, zRot);
     plSceneObject* so = plSceneObject::ConvertNoRef(fOwner->ObjectIsLoaded());
     if (so) {
         hsQuat worldRot;
@@ -289,14 +327,19 @@ void plBtPhysicalControllerCore::SetState (const hsPoint3 & pos, float zRot) {
 }
 
 void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strategy) {
+    dprintf ("plBtPhysicalControllerCore::SetMovementStrategy (0x%X, strategy=0x%X))", this, strategy);
     hsAssert(strategy, "null mouvement strategy!");
     
     if (!fMovementStrategy || fMovementStrategy->IsKinematic() != strategy->IsKinematic())
     {
-        btDiscreteDynamicsWorld & world = plSimulationMgrImpl::GetOrCreateWorld(fWorldKey);
+        btDiscreteDynamicsWorld * world;
+
+        if (fWorldKey)
+            world = &plSimulationMgrImpl::GetOrCreateWorld(fWorldKey);
         
         if (ctrl) {
-            ctrl->RemoveFrom(world);
+            if (fWorldKey)
+                ctrl->RemoveFrom(*world);
             delete ctrl;
         }
         
@@ -305,7 +348,8 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
         else
             ctrl = new Private::btDynamicControler(this, fLocalPosition, shape);
         
-        ctrl->AddTo(world);
+        if (fWorldKey)
+            ctrl->AddTo(*world);
     }
     
     fMovementStrategy = strategy;
@@ -331,6 +375,7 @@ void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
     }
 
     fLastLocalPosition = fLocalPosition;
+    dprintf ("plBtPhysicalControllerCore::SetGlobalLoc (0x%X, x=%i, y=%i, z=%i))", this, fLastLocalPosition.fX, fLastLocalPosition.fY, fLastLocalPosition.fZ);
 
 //    if (fProxyGen)
 //    {
@@ -378,6 +423,7 @@ void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
 }
 
 void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
+    dprintf ("plBtPhysicalControllerCore::GetPositionSim (0x%X, x=%i, y=%i, z=%i))", this, pos.fX, pos.fY, pos.fZ);
     auto & orig = ctrl->GetObj().getWorldTransform().getOrigin();
     pos.fX = orig.x();
     pos.fY = orig.y();
@@ -385,11 +431,14 @@ void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
 }
 
 void plBtPhysicalControllerCore::Move (hsVector3 displacement, unsigned int collideWith, unsigned int & collisionResults) {
+    dprintf ("plBtPhysicalControllerCore::Move (0x%X, x=%i, y=%i, z=%i))", this, displacement.fX, displacement.fY, displacement.fZ);
+    // TODO
     ctrl->SetVelocity (displacement);
     collisionResults = 0;
 }
 
 void plBtPhysicalControllerCore::SetLinearVelocitySim (const hsVector3 & vec) {
+    dprintf ("plBtPhysicalControllerCore::SetLinearVelocitySim (0x%X, x=%i, y=%i, z=%i))", this, vec.fX, vec.fY, vec.fZ);
     ctrl->SetVelocity (vec);
 }
 
@@ -397,6 +446,8 @@ int plBtPhysicalControllerCore::SweepControllerPath (
     const hsPoint3 & startPos, const hsPoint3 & endPos, bool vsDynamics,
     bool vsStatics, uint32_t & vsSimGroups, std::vector<plControllerSweepRecord> & hits
 ) {
+    printf ("plBtPhysicalControllerCore::SweepControllerPath (0x%X, start: x=%i, y=%i, z=%i; end: x=%i, y=%i, z=%i))", this, startPos.fX, startPos.fY, startPos.fZ, endPos.fX, endPos.fY, endPos.fZ);
+    // TODO: btGhostObject::convexSweepTest or btDiscreteDynamicsWorld::convexSweepTest
 	return 0;
 }
 
