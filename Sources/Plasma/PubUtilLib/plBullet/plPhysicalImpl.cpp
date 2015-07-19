@@ -232,14 +232,17 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         hsAssert (count <= 0x100, "Invalid number of points in NXS.CVXM shape");
         stream->Skip(20); // skip <nbFaces> <nbFaces> <unknow1> <nbFaces*2> <nbFaces*2>
         
-        for (int i = 0; i < count; i++)
+        for (int i = 0; i < count; i++) {
+            float tmp1 = stream->ReadLEScalar();
+            float tmp2 = stream->ReadLEScalar();
             hull->addPoint(
                 btVector3(
+                    tmp1,
                     stream->ReadLEScalar(),
-                    stream->ReadLEScalar(),
-                    stream->ReadLEScalar()
+                    tmp2
                 )
             );
+        }
         // ignore <unknow2>, { uint8 ptIdx[3]; }faces[<nbFaces>] and short(0)
         // maybe they have some others datas in file
         
@@ -256,12 +259,15 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         uint32_t count = stream->ReadLE32();
         
         btVector3 * pts = new btVector3[ptCount];
-        for (int i = 0; i < ptCount; i++)
+        for (int i = 0; i < ptCount; i++) {
+            float tmp1 = stream->ReadLEScalar();
+            float tmp2 = stream->ReadLEScalar();
             pts[i] = btVector3(
+                tmp1,
                 stream->ReadLEScalar(),
-                stream->ReadLEScalar(),
-                stream->ReadLEScalar()
+                tmp2
             );
+        }
         
         for (int i = 0; i < count; i++)
         {

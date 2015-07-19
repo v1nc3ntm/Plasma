@@ -185,6 +185,7 @@ struct plBtPhysicalControllerCore::Private {
         
         virtual void AddTo (btDiscreteDynamicsWorld & world) {
             world.addRigidBody (&body, (1 << plSimDefs::kGroupAvatarKinematic), kKinematicMask);
+            body.setGravity(btVector3(0, 0, 0));
         }
         
         virtual void RemoveFrom (btDiscreteDynamicsWorld & world) {
@@ -204,7 +205,7 @@ struct plBtPhysicalControllerCore::Private {
         }
         
         virtual void SetVelocity (const hsVector3 & vec) {
-            body.setLinearVelocity(btVector3(vec.fX, vec.fY, vec.fZ));
+            body.setLinearVelocity(btVector3(vec.fX, vec.fY,0 * vec.fZ));
         }
     };
 };
@@ -219,9 +220,9 @@ plPhysicalControllerCore * plPhysicalControllerCore::Create (
 }
 
 plBtPhysicalControllerCore::plBtPhysicalControllerCore (plKey ownerSO, float height, float radius, bool human)
- : plPhysicalControllerCore(ownerSO, height, radius),
-   ctrl (nullptr),
-   shape (radius, height)
+ : plPhysicalControllerCore(ownerSO, height, radius)
+ , ctrl (nullptr)
+ , shape (radius, height)
 {
     dprintf ("plBtPhysicalControllerCore (0x%X)", this);
     plSimulationMgrImpl::AddCtrl(fWorldKey, *this);
@@ -343,9 +344,9 @@ void plBtPhysicalControllerCore::SetMovementStrategy (plMovementStrategy * strat
             delete ctrl;
         }
         
-        if (strategy->IsKinematic())
-            ctrl = new Private::btKinematicControler(this, fLocalPosition, shape);
-        else
+        //if (strategy->IsKinematic())
+        //    ctrl = new Private::btKinematicControler(this, fLocalPosition, shape);
+        //else
             ctrl = new Private::btDynamicControler(this, fLocalPosition, shape);
         
         if (fWorldKey)
@@ -377,15 +378,15 @@ void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
     fLastLocalPosition = fLocalPosition;
     dprintf ("plBtPhysicalControllerCore::SetGlobalLoc (0x%X, x=%i, y=%i, z=%i))", this, fLastLocalPosition.fX, fLastLocalPosition.fY, fLastLocalPosition.fZ);
 
-//    if (fProxyGen)
-//    {
-//        hsMatrix44 w2l;
-//        l2w.GetInverse(&w2l);
-//        fProxyGen->SetTransform(l2w, w2l);
-//    }
+    hsMatrix44 w2l;
+    l2w.GetInverse(&w2l);
 
     // TODO: Update the physical position
-//    if (fKinematicCCT)
+    btVector3 & orig = ctrl->GetObj().getWorldTransform().getOrigin();
+    orig.setX(fLocalPosition.fX);
+    orig.setY(fLocalPosition.fY);
+    orig.setZ(fLocalPosition.fZ);
+    //    if (fKinematicCCT)
 //    {
 //        hsVector3 disp(&fLocalPosition, &prevPosition);
 //        if (disp.Magnitude() > 2.f)
@@ -424,7 +425,7 @@ void plBtPhysicalControllerCore::SetGlobalLoc (const hsMatrix44 & l2w) {
 
 void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
     dprintf ("plBtPhysicalControllerCore::GetPositionSim (0x%X, x=%i, y=%i, z=%i))", this, pos.fX, pos.fY, pos.fZ);
-    auto & orig = ctrl->GetObj().getWorldTransform().getOrigin();
+    btVector3 & orig = ctrl->GetObj().getWorldTransform().getOrigin();
     pos.fX = orig.x();
     pos.fY = orig.y();
     pos.fZ = orig.z();
@@ -432,9 +433,11 @@ void plBtPhysicalControllerCore::GetPositionSim (hsPoint3 & pos) {
 
 void plBtPhysicalControllerCore::Move (hsVector3 displacement, unsigned int collideWith, unsigned int & collisionResults) {
     dprintf ("plBtPhysicalControllerCore::Move (0x%X, x=%i, y=%i, z=%i))", this, displacement.fX, displacement.fY, displacement.fZ);
-    // TODO
-    ctrl->SetVelocity (displacement);
-    collisionResults = 0;
+    btVector3 & orig = ctrl->GetObj().getWorldTransform().getOrigin();
+    orig.setX(orig.x() + displacement.fX);
+    orig.setY(orig.y() + displacement.fY);
+//    orig.setZ(orig.z() + displacement.fZ);
+    collisionResults = kBottom;
 }
 
 void plBtPhysicalControllerCore::SetLinearVelocitySim (const hsVector3 & vec) {

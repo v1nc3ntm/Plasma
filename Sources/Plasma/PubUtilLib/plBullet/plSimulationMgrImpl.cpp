@@ -152,8 +152,9 @@ void plSimulationMgr::Advance (float deltaSecs) {
     for (auto & it: plSimulationMgrImpl::Private::instance->worlds) {
         int nbStep = it.second.stepSimulation(deltaSecs);  //, 60/minFps);
         
-        for (auto ctrl : *(set<plBtPhysicalControllerCore *> *)it.second.getWorldUserInfo())
-            ctrl->Update(deltaSecs, nbStep);
+        if (nbStep)
+            for (auto ctrl : *(set<plBtPhysicalControllerCore *> *)it.second.getWorldUserInfo())
+                ctrl->Update(nbStep / 60, nbStep);
     }
     plProfile_EndTiming(Step);
 }
