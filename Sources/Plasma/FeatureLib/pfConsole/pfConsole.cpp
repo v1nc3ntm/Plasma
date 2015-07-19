@@ -171,6 +171,7 @@ class pfConsoleInputInterface : public plInputInterface
                 fControlMap->UnmapAllBindings();
 #ifndef PLASMA_EXTERNAL_RELEASE
                 fControlMap->BindKey( KEY_TILDE, B_SET_CONSOLE_MODE );
+                fControlMap->BindKey( KEY_QUOTE, B_SET_CONSOLE_MODE );
 #endif
             }
         }
