@@ -48,10 +48,14 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include "hsMatrix44.h"
 #include "hsQuat.h"
 #include "hsResMgr.h"
+#include "plDrawable/plDrawableGenerator.h"
+#include "plPhysical/plPhysicalProxy.h"
 #include "plPhysical/plPhysicalSndGroup.h"
 #include "plPhysical/plSimDefs.h"
 #include "plMessage/plAngularVelocityMsg.h"
 #include "plMessage/plLinearVelocityMsg.h"
+#include "plSurface/hsGMaterial.h"
+#include "plSurface/plLayerInterface.h"
 #include "pnMessage/plCorrectionMsg.h"
 #include "pnMessage/plRefMsg.h"
 #include "pnMessage/plSimulationMsg.h"
@@ -61,8 +65,9 @@ You can contact Cyan Worlds, Inc. by email legal@cyan.com
 #include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <BulletCollision/CollisionShapes/btCompoundShape.h>
 #include <BulletCollision/CollisionShapes/btConvexHullShape.h>
-#include <BulletCollision/CollisionShapes/btTriangleShape.h>
+#include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <BulletCollision/CollisionShapes/btSphereShape.h>
+#include <BulletCollision/CollisionShapes/btTriangleShape.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include <BulletDynamics/Dynamics/btRigidBody.h>
 #include <LinearMath/btVector3.h>
@@ -82,10 +87,17 @@ public:
     hsVector3           force;
     hsPoint3            pos;
     
-    Private () : hit(false) {}
-    ~Private () {
+    std::vector<hsPoint3> vertices;
+    std::vector<uint16_t> faces;
+    plPhysicalProxy *   proxy;
+
+    Private () : obj(), group(), bounds(), losdb(), reportsOn(), sndGroup()
+               , hit(false), proxy(nullptr) {}
+
+    virtual ~Private () {
         if (obj)
             plSimulationMgrImpl::GetOrCreateWorld(worldKey).removeRigidBody(obj);
+        delete proxy;
     }
     
     virtual plKey               GetObjKey () const { return objKey; }
@@ -148,7 +160,6 @@ public:
 plPhysicalImpl::plPhysicalImpl () : physic(new Private) {}
 plPhysicalImpl::~plPhysicalImpl () { delete physic; }
 
-
 void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
 {
     plPhysical::Read(stream, mgr);
@@ -206,24 +217,47 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     // Properties
     physic->props.Read(stream);
     
+
     // Shape
     switch (physic->bounds) {
-    case plSimDefs::kBoxBounds: {
+    case plSimDefs::kBoxBounds:
+        physic->vertices.resize(8);
+
+        physic->vertices[0].Read(stream);
+        physic->vertices[1].Set(-physic->vertices[0].fX, +physic->vertices[0].fY, +physic->vertices[0].fZ);
+        physic->vertices[2].Set(+physic->vertices[0].fX, -physic->vertices[0].fY, +physic->vertices[0].fZ);
+        physic->vertices[3].Set(-physic->vertices[0].fX, -physic->vertices[0].fY, +physic->vertices[0].fZ);
+        physic->vertices[4].Set(+physic->vertices[0].fX, +physic->vertices[0].fY, -physic->vertices[0].fZ);
+        physic->vertices[5].Set(-physic->vertices[0].fX, +physic->vertices[0].fY, -physic->vertices[0].fZ);
+        physic->vertices[6].Set(+physic->vertices[0].fX, -physic->vertices[0].fY, -physic->vertices[0].fZ);
+        physic->vertices[7].Set(-physic->vertices[0].fX, -physic->vertices[0].fY, -physic->vertices[0].fZ);
+
+        physic->faces.resize(12*3);
+        physic->faces[ 0] = 0; physic->faces[ 1] = 1; physic->faces[ 2] = 3;
+        physic->faces[ 3] = 0; physic->faces[ 4] = 2; physic->faces[ 5] = 3;
+        physic->faces[ 6] = 0; physic->faces[ 7] = 1; physic->faces[ 8] = 5;
+        physic->faces[ 9] = 0; physic->faces[10] = 4; physic->faces[11] = 5;
+        physic->faces[12] = 0; physic->faces[13] = 2; physic->faces[14] = 6;
+        physic->faces[15] = 0; physic->faces[16] = 4; physic->faces[17] = 6;
+        physic->faces[18] = 7; physic->faces[19] = 1; physic->faces[20] = 3;
+        physic->faces[21] = 7; physic->faces[22] = 2; physic->faces[23] = 3;
+        physic->faces[24] = 7; physic->faces[25] = 1; physic->faces[26] = 5;
+        physic->faces[27] = 7; physic->faces[28] = 4; physic->faces[29] = 5;
+        physic->faces[30] = 7; physic->faces[31] = 2; physic->faces[32] = 6;
+        physic->faces[33] = 7; physic->faces[34] = 4; physic->faces[35] = 6;
+
         info.m_collisionShape = new btBoxShape(
-            btVector3(
-                stream->ReadLEScalar(),
-                stream->ReadLEScalar(),
-                stream->ReadLEScalar()
-            )
+            btVector3(physic->vertices[0].fX, physic->vertices[0].fY, physic->vertices[0].fZ)
         );
-        hsPoint3 offset; offset.Read(stream); // offset?
+
+        { hsPoint3 offset; offset.Read(stream); } // offset?
         break;
-    }
-    case plSimDefs::kSphereBounds: {
+
+    case plSimDefs::kSphereBounds:
         info.m_collisionShape = new btSphereShape(stream->ReadLEScalar());
-        hsPoint3 offset; offset.Read(stream); // offset?
+        { hsPoint3 offset; offset.Read(stream); } // offset?
         break;
-    }
+
     case plSimDefs::kHullBounds: {
         btConvexHullShape * hull = new btConvexHullShape;
         
@@ -233,20 +267,30 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         stream->Skip(20); // skip <nbFaces> <nbFaces> <unknow1> <nbFaces*2> <nbFaces*2>
         
         for (int i = 0; i < count; i++) {
-            float tmp1 = stream->ReadLEScalar();
-            float tmp2 = stream->ReadLEScalar();
-            hull->addPoint(
-                btVector3(
-                    tmp1,
-                    stream->ReadLEScalar(),
-                    tmp2
-                )
-            );
+            btVector3 vect;
+            vect.setX(+stream->ReadLEScalar());
+            vect.setY(-stream->ReadLEScalar());
+            vect.setZ(-stream->ReadLEScalar());
+            vect.setW(0);
+            hull->addPoint(vect);
         }
         // ignore <unknow2>, { uint8 ptIdx[3]; }faces[<nbFaces>] and short(0)
         // maybe they have some others datas in file
         
         info.m_collisionShape = hull;
+
+        btShapeHull shape(hull);
+        shape.buildHull(hull->getMargin());
+        physic->vertices.resize(shape.numVertices());
+        physic->faces.resize(shape.numIndices());
+
+        for (unsigned i = 0; i < shape.numVertices(); ++i) {
+            const btVector3 & v = shape.getVertexPointer()[i];
+            physic->vertices[i].Set(v.getX(), v.getY(), v.getZ());
+        }
+        for (unsigned i = 0; i < shape.numIndices(); ++i)
+            physic->faces[i] = shape.getIndexPointer()[i];
+
         break;
     }
     case plSimDefs::kProxyBounds:
@@ -258,32 +302,36 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         //hsAssert (ptCount <= 0x100, "Invalid number of points in NXS.CVXM shape");
         uint32_t count = stream->ReadLE32();
         
-        btVector3 * pts = new btVector3[ptCount];
+        std::vector<btVector3> pts(ptCount);
+        physic->vertices.resize(ptCount);
+        physic->faces.resize(count * 3);
+
         for (int i = 0; i < ptCount; i++) {
-            float tmp1 = stream->ReadLEScalar();
-            float tmp2 = stream->ReadLEScalar();
-            pts[i] = btVector3(
-                tmp1,
-                stream->ReadLEScalar(),
-                tmp2
-            );
+            physic->vertices[i].fX = +stream->ReadLEScalar();
+            physic->vertices[i].fY = -stream->ReadLEScalar();
+            physic->vertices[i].fZ = -stream->ReadLEScalar();
+            pts[i].setValue(physic->vertices[i].fX, physic->vertices[i].fY, physic->vertices[i].fZ);
         }
         
-        for (int i = 0; i < count; i++)
-        {
-            uint8_t a, b, c;
-            a = stream->ReadByte(); hsAssert(a < ptCount, "invalid face vertex index");
-            b = stream->ReadByte(); hsAssert(b < ptCount, "invalid face vertex index");
-            c = stream->ReadByte(); hsAssert(c < ptCount, "invalid face vertex index");
-            
-            shape->addChildShape(
-                btTransform(),
-                new btTriangleShape(pts[a], pts[b], pts[c])
-            );
+
+        for (int i = 0; i < count * 3; i++) {
+            physic->faces[i] = stream->ReadByte();
+            hsAssert(physic->faces[i] < ptCount, "invalid face vertex index");
+
+            if (2 == (i%3))
+            {
+                shape->addChildShape(
+                    btTransform(),
+                    new btTriangleShape(
+                        pts[physic->faces[i-2]],
+                        pts[physic->faces[i-1]],
+                        pts[physic->faces[i-0]]
+                    )
+                );
+            }
         }
         // maybe they have some others datas in file
         
-        delete[] pts;
         info.m_collisionShape = shape;
         break;
     }
@@ -308,6 +356,56 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     plSimulationMgrImpl::GetOrCreateWorld(physic->worldKey).addRigidBody(
         physic->obj, (1 << physic->group), Private::ConvertMask(physic->group, physic->reportsOn)
     );
+
+
+    hsColorRGBA color;
+    float opacity = 1;
+    switch (physic->group) {
+    case plSimDefs::kGroupAvatar:
+        color.Set(.2f, .1f, .2f, 1.f);
+        opacity = 0.4f;
+        break;
+
+    case plSimDefs::kGroupDynamic:
+        color.Set(1.f,0.f,0.f,1.f);
+        break;
+
+    case plSimDefs::kGroupDetector:
+        if (!physic->worldKey)
+        {
+            // Detectors are blue, and transparent
+            color.Set(0.f,0.f,1.f,1.f);
+            opacity = 0.3f;
+        }
+        else
+        {
+            // subworld Detectors are green
+            color.Set(0.f,1.f,0.f,1.f);
+            opacity = 0.3f;
+        }
+        break;
+
+    case plSimDefs::kGroupStatic:
+        if (GetProperty(plSimulationInterface::kPhysAnim))
+            // Statics that are animated are more reddish?
+            color.Set(1.f,0.6f,0.2f,1.f);
+        else
+            // Statics are yellow
+            color.Set(1.f,0.8f,0.2f,1.f);
+
+        // if in a subworld... slightly transparent
+        if (physic->worldKey)
+            opacity = 0.6f;
+        break;
+
+    default:
+            // don't knows are grey
+            color.Set(0.6f,0.6f,0.6f,1.f);
+            break;
+    }
+
+    physic->proxy = new plPhysicalProxy(hsColorRGBA().Set(0, 0, 0, 1), color, opacity);
+    physic->proxy->Init (this);
 }
 
 void plPhysicalImpl::Write (hsStream * stream, hsResMgr * mgr) {
@@ -589,8 +687,37 @@ void plPhysicalImpl::ExcludeRegionHack (bool cleared) {
 }
 
 plDrawableSpans * plPhysicalImpl::CreateProxy (hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo) {
-    hsAssert(false, "TODO");
-    
+    hsAssert(physic->obj, "CreateProxy() on plPhysical without btRigidBody");
+
+    btCollisionShape & shape = *physic->obj->getCollisionShape();
+
+    bool blended = ((mat->GetLayer(0)->GetBlendFlags() & hsGMatState::kBlendMask));
+    hsMatrix44 l2w;
+    physic->obj->getWorldTransform().getOpenGLMatrix(*l2w.fMap);
+
+    if (!physic->vertices.empty())
+    {
+        addTo = plDrawableGenerator::GenerateDrawable(
+            physic->vertices.size(), physic->vertices.data(), nullptr,
+            nullptr, 0,
+            nullptr, true, nullptr,
+            physic->faces.size(), physic->faces.data(),
+            mat, l2w, blended, &idx, addTo
+        );
+    }
+    else
+        switch (shape.getShapeType()) {
+        case SPHERE_SHAPE_PROXYTYPE:
+            addTo = plDrawableGenerator::GenerateSphericalDrawable (
+                hsPoint3(), ((btSphereShape&)shape).getRadius(),
+                mat, l2w, blended, nullptr, &idx, addTo
+            );
+            break;
+
+        default:
+            hsAssert(false, "physical proxy is not implemented for this bullet shape");
+        }
+
     return addTo;
 }
 
