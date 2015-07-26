@@ -319,24 +319,27 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     case plSimDefs::kExplicitBounds: {
         btCompoundShape * shape = new btCompoundShape();
         
-        stream->Skip(28); // skip "NXS\x01MESH" 0 8 0,001 255 0
+        stream->Skip(12); // skip "NXS\x01MESH"
+        uint32_t type = stream->ReadLE32();
+        stream->Skip(12); // skip 0,001 255 0
+
         uint32_t ptCount = stream->ReadLE32();
         //hsAssert (ptCount <= 0x100, "Invalid number of points in NXS.CVXM shape");
         uint32_t count = stream->ReadLE32();
         
         std::vector<btVector3> pts(ptCount);
         physic->vertices.resize(ptCount);
-        physic->faces.resize(count * 3);
 
         for (int i = 0; i < ptCount; i++) {
             physic->vertices[i].Read(stream);
             pts[i].setValue(physic->vertices[i].fX, physic->vertices[i].fY, physic->vertices[i].fZ);
         }
         
-
+        hsAssert(type == 8 || type == 10 || type == 18, "unknow type");
+        physic->faces.resize(count * 3);
         for (int i = 0; i < count * 3; i++) {
-            physic->faces[i] = stream->ReadByte();
-            hsAssert(physic->faces[i] < ptCount, "invalid face vertex index");
+            physic->faces[i] = (type == 18) ? stream->ReadLE16() : stream->ReadByte();
+            hsAssert(physic->faces[i] < ptCount, "invalid vertex index");
 
             if (2 == (i%3))
             {
@@ -592,6 +595,7 @@ void plPhysicalImpl::GetTransform (hsMatrix44 & l2w, hsMatrix44 & w2l) {
     w2l.GetInverse(&l2w);
 }
 void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l, bool force) {
+    return; // FIXME
     hsAssert(w2l.fMap[3][0] == 0, "invalid transform matrix");
     hsAssert(w2l.fMap[3][1] == 0, "invalid transform matrix");
     hsAssert(w2l.fMap[3][2] == 0, "invalid transform matrix");
