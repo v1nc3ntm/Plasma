@@ -572,27 +572,27 @@ void plPhysicalImpl::GetTransform (hsMatrix44 & l2w, hsMatrix44 & w2l) {
     const btVector3   & o = t.getOrigin();
     
     // make 4x4 matrix from translation and 3x3 rotation matrix
-    w2l.fMap[0][0] = r[0].x();
-    w2l.fMap[1][0] = r[0].y();
-    w2l.fMap[2][0] = r[0].z();
-    w2l.fMap[3][0] = 0;
+    l2w.fMap[0][0] = r[0].x();
+    l2w.fMap[1][0] = r[0].y();
+    l2w.fMap[2][0] = r[0].z();
+    l2w.fMap[3][0] = 0;
 
-    w2l.fMap[0][1] = r[1].x();
-    w2l.fMap[1][1] = r[1].y();
-    w2l.fMap[2][1] = r[1].z();
-    w2l.fMap[3][1] = 0;
+    l2w.fMap[0][1] = r[1].x();
+    l2w.fMap[1][1] = r[1].y();
+    l2w.fMap[2][1] = r[1].z();
+    l2w.fMap[3][1] = 0;
 
-    w2l.fMap[0][2] = r[2].x();
-    w2l.fMap[1][2] = r[2].y();
-    w2l.fMap[2][2] = r[2].z();
-    w2l.fMap[3][2] = 0;
+    l2w.fMap[0][2] = r[2].x();
+    l2w.fMap[1][2] = r[2].y();
+    l2w.fMap[2][2] = r[2].z();
+    l2w.fMap[3][2] = 0;
 
-    w2l.fMap[0][3] = o.x();
-    w2l.fMap[1][3] = o.y();
-    w2l.fMap[2][3] = o.z();
-    w2l.fMap[3][3] = 1;
+    l2w.fMap[0][3] = o.x();
+    l2w.fMap[1][3] = o.y();
+    l2w.fMap[2][3] = o.z();
+    l2w.fMap[3][3] = 1;
 
-    w2l.GetInverse(&l2w);
+    l2w.GetInverse(&w2l);
 }
 void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l, bool force) {
     return; // FIXME
@@ -608,10 +608,10 @@ void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l,
     btTransform & t = physic->obj->getWorldTransform();
     btMatrix3x3 & r = t.getBasis();
 
-    r[0]         .setValue(w2l.fMap[0][0], w2l.fMap[1][0], w2l.fMap[2][0]);
-    r[0]         .setValue(w2l.fMap[0][1], w2l.fMap[1][1], w2l.fMap[2][1]);
-    r[0]         .setValue(w2l.fMap[0][2], w2l.fMap[1][2], w2l.fMap[2][2]);
-    t.getOrigin().setValue(w2l.fMap[0][3], w2l.fMap[1][3], w2l.fMap[2][3]);
+    r[0]         .setValue(l2w.fMap[0][0], l2w.fMap[1][0], l2w.fMap[2][0]);
+    r[0]         .setValue(l2w.fMap[0][1], l2w.fMap[1][1], l2w.fMap[2][1]);
+    r[0]         .setValue(l2w.fMap[0][2], l2w.fMap[1][2], l2w.fMap[2][2]);
+    t.getOrigin().setValue(l2w.fMap[0][3], l2w.fMap[1][3], l2w.fMap[2][3]);
 }
 
 int plPhysicalImpl::GetGroup () const { return physic->group; }
@@ -708,7 +708,7 @@ plDrawableSpans * plPhysicalImpl::CreateProxy (hsGMaterial* mat, hsTArray<uint32
 
     bool blended = ((mat->GetLayer(0)->GetBlendFlags() & hsGMatState::kBlendMask));
     hsMatrix44 l2w, w2l;
-    GetTransform(w2l, l2w);
+    GetTransform(l2w, w2l);
 
     if (!physic->vertices.empty())
     {
