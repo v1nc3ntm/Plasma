@@ -197,21 +197,19 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     
     // Position
     {
-        btVector3 pos(
-            stream->ReadLEScalar(),
-            stream->ReadLEScalar(),
-            stream->ReadLEScalar()
-        );
-        
-        info.m_startWorldTransform = btTransform(
-            btQuaternion(
-                stream->ReadLEScalar(),
-                stream->ReadLEScalar(),
-                stream->ReadLEScalar(),
-                stream->ReadLEScalar()
-            ),
-            pos
-        );
+        info.m_startWorldTransform.setIdentity();
+        btVector3 & pos = info.m_startWorldTransform.getOrigin();
+        pos.setX(stream->ReadLEScalar());
+        pos.setY(stream->ReadLEScalar());
+        pos.setZ(stream->ReadLEScalar());
+        pos.setW(0);
+
+        btQuaternion rot;
+        rot.setX(stream->ReadLEScalar());
+        rot.setY(stream->ReadLEScalar());
+        rot.setZ(stream->ReadLEScalar());
+        rot.setW(stream->ReadLEScalar());
+        info.m_startWorldTransform.setRotation(rot);
     }
     
     // Properties
@@ -219,11 +217,15 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     
 
     // Shape
+    hsPoint3 offset(0, 0, 0);
+
     switch (physic->bounds) {
     case plSimDefs::kBoxBounds:
         physic->vertices.resize(8);
 
         physic->vertices[0].Read(stream);
+        offset.Read(stream);
+
         physic->vertices[1].Set(-physic->vertices[0].fX, +physic->vertices[0].fY, +physic->vertices[0].fZ);
         physic->vertices[2].Set(+physic->vertices[0].fX, -physic->vertices[0].fY, +physic->vertices[0].fZ);
         physic->vertices[3].Set(-physic->vertices[0].fX, -physic->vertices[0].fY, +physic->vertices[0].fZ);
@@ -232,30 +234,51 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         physic->vertices[6].Set(+physic->vertices[0].fX, -physic->vertices[0].fY, -physic->vertices[0].fZ);
         physic->vertices[7].Set(-physic->vertices[0].fX, -physic->vertices[0].fY, -physic->vertices[0].fZ);
 
-        physic->faces.resize(12*3);
-        physic->faces[ 0] = 0; physic->faces[ 1] = 1; physic->faces[ 2] = 3;
-        physic->faces[ 3] = 0; physic->faces[ 4] = 2; physic->faces[ 5] = 3;
-        physic->faces[ 6] = 0; physic->faces[ 7] = 1; physic->faces[ 8] = 5;
-        physic->faces[ 9] = 0; physic->faces[10] = 4; physic->faces[11] = 5;
-        physic->faces[12] = 0; physic->faces[13] = 2; physic->faces[14] = 6;
-        physic->faces[15] = 0; physic->faces[16] = 4; physic->faces[17] = 6;
-        physic->faces[18] = 7; physic->faces[19] = 1; physic->faces[20] = 3;
-        physic->faces[21] = 7; physic->faces[22] = 2; physic->faces[23] = 3;
-        physic->faces[24] = 7; physic->faces[25] = 1; physic->faces[26] = 5;
-        physic->faces[27] = 7; physic->faces[28] = 4; physic->faces[29] = 5;
-        physic->faces[30] = 7; physic->faces[31] = 2; physic->faces[32] = 6;
-        physic->faces[33] = 7; physic->faces[34] = 4; physic->faces[35] = 6;
-
         info.m_collisionShape = new btBoxShape(
             btVector3(physic->vertices[0].fX, physic->vertices[0].fY, physic->vertices[0].fZ)
         );
+        if (!offset.IsEmpty()) {
+            btCompoundShape * comp = new btCompoundShape();
+            comp->addChildShape(
+                btTransform(btQuaternion(), btVector3(offset.fX, offset.fY, offset.fZ)),
+                info.m_collisionShape);
+            info.m_collisionShape = comp;
+        }
 
-        { hsPoint3 offset; offset.Read(stream); } // offset?
+        for (int i = 0; i < 8; ++i)
+            physic->vertices[i] += offset;
+
+        physic->faces.resize(3*2*6); // vertex by triangles , triangles by faces and faces count
+        physic->faces[ 0] = 0; physic->faces[ 1] = 1; physic->faces[ 2] = 3;
+        physic->faces[ 3] = 0; physic->faces[ 4] = 3; physic->faces[ 5] = 2;
+
+        physic->faces[ 6] = 0; physic->faces[ 7] = 2; physic->faces[ 8] = 6;
+        physic->faces[ 9] = 0; physic->faces[10] = 6; physic->faces[11] = 4;
+
+        physic->faces[12] = 0; physic->faces[13] = 4; physic->faces[14] = 5;
+        physic->faces[15] = 0; physic->faces[16] = 5; physic->faces[17] = 1;
+
+        physic->faces[18] = 7; physic->faces[19] = 3; physic->faces[20] = 1;
+        physic->faces[21] = 7; physic->faces[22] = 1; physic->faces[23] = 5;
+
+        physic->faces[24] = 7; physic->faces[25] = 5; physic->faces[26] = 4;
+        physic->faces[27] = 7; physic->faces[28] = 4; physic->faces[29] = 6;
+
+        physic->faces[30] = 7; physic->faces[31] = 6; physic->faces[32] = 2;
+        physic->faces[33] = 7; physic->faces[34] = 2; physic->faces[35] = 3;
+
         break;
 
     case plSimDefs::kSphereBounds:
         info.m_collisionShape = new btSphereShape(stream->ReadLEScalar());
-        { hsPoint3 offset; offset.Read(stream); } // offset?
+        offset.Read(stream);
+        if (!offset.IsEmpty()) {
+            btCompoundShape * comp = new btCompoundShape();
+            comp->addChildShape(
+                btTransform(btQuaternion(), btVector3(offset.fX, offset.fY, offset.fZ)),
+                info.m_collisionShape);
+            info.m_collisionShape = comp;
+        }
         break;
 
     case plSimDefs::kHullBounds: {
@@ -268,9 +291,9 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         
         for (int i = 0; i < count; i++) {
             btVector3 vect;
-            vect.setX(+stream->ReadLEScalar());
-            vect.setY(-stream->ReadLEScalar());
-            vect.setZ(-stream->ReadLEScalar());
+            vect.setX(stream->ReadLEScalar());
+            vect.setY(stream->ReadLEScalar());
+            vect.setZ(stream->ReadLEScalar());
             vect.setW(0);
             hull->addPoint(vect);
         }
@@ -290,7 +313,6 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         }
         for (unsigned i = 0; i < shape.numIndices(); ++i)
             physic->faces[i] = shape.getIndexPointer()[i];
-
         break;
     }
     case plSimDefs::kProxyBounds:
@@ -307,9 +329,7 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
         physic->faces.resize(count * 3);
 
         for (int i = 0; i < ptCount; i++) {
-            physic->vertices[i].fX = +stream->ReadLEScalar();
-            physic->vertices[i].fY = -stream->ReadLEScalar();
-            physic->vertices[i].fZ = -stream->ReadLEScalar();
+            physic->vertices[i].Read(stream);
             pts[i].setValue(physic->vertices[i].fX, physic->vertices[i].fY, physic->vertices[i].fZ);
         }
         
@@ -330,6 +350,8 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
                 );
             }
         }
+        break;
+
         // maybe they have some others datas in file
         
         info.m_collisionShape = shape;
@@ -340,7 +362,7 @@ void plPhysicalImpl::Read (hsStream * stream, hsResMgr * mgr)
     }
     
     ////////////////////////////////////////////////////
-    
+
     physic->obj = new btRigidBody(info);
     physic->obj->setUserPointer((plBtDefs::ObjectData*)physic);
     
@@ -548,32 +570,28 @@ void plPhysicalImpl::GetTransform (hsMatrix44 & l2w, hsMatrix44 & w2l) {
     
     // make 4x4 matrix from translation and 3x3 rotation matrix
     w2l.fMap[0][0] = r[0].x();
-    w2l.fMap[0][1] = r[1].x();
-    w2l.fMap[0][2] = r[2].x();
-    w2l.fMap[0][3] = o.x();
-    
     w2l.fMap[1][0] = r[0].y();
-    w2l.fMap[1][1] = r[1].y();
-    w2l.fMap[1][2] = r[2].y();
-    w2l.fMap[1][3] = o.y();
-    
     w2l.fMap[2][0] = r[0].z();
-    w2l.fMap[2][1] = r[1].z();
-    w2l.fMap[2][2] = r[2].z();
-    w2l.fMap[2][3] = o.z();
-    
     w2l.fMap[3][0] = 0;
+
+    w2l.fMap[0][1] = r[1].x();
+    w2l.fMap[1][1] = r[1].y();
+    w2l.fMap[2][1] = r[1].z();
     w2l.fMap[3][1] = 0;
+
+    w2l.fMap[0][2] = r[2].x();
+    w2l.fMap[1][2] = r[2].y();
+    w2l.fMap[2][2] = r[2].z();
     w2l.fMap[3][2] = 0;
+
+    w2l.fMap[0][3] = o.x();
+    w2l.fMap[1][3] = o.y();
+    w2l.fMap[2][3] = o.z();
     w2l.fMap[3][3] = 1;
-    
+
     w2l.GetInverse(&l2w);
 }
 void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l, bool force) {
-    btTransform & t = physic->obj->getWorldTransform();
-    btMatrix3x3 & r = t.getBasis();
-    btVector3   & o = t.getOrigin();
-    
     hsAssert(w2l.fMap[3][0] == 0, "invalid transform matrix");
     hsAssert(w2l.fMap[3][1] == 0, "invalid transform matrix");
     hsAssert(w2l.fMap[3][2] == 0, "invalid transform matrix");
@@ -583,20 +601,13 @@ void plPhysicalImpl::SetTransform (const hsMatrix44& l2w, const hsMatrix44& w2l,
 //    hsAssert(fabs(w2l.fMap[1][0] + w2l.fMap[1][1] + w2l.fMap[1][2]) == 1.f, "scaling transform not supported by bullet");
 //    hsAssert(fabs(w2l.fMap[2][0] + w2l.fMap[2][1] + w2l.fMap[2][2]) == 1.f, "scaling transform not supported by bullet");
     
-    r[0].setX(w2l.fMap[0][0]);
-    r[1].setX(w2l.fMap[0][1]);
-    r[2].setX(w2l.fMap[0][2]);
-    o   .setX(w2l.fMap[0][3]);
-    
-    r[0].setY(w2l.fMap[1][0]);
-    r[1].setY(w2l.fMap[1][1]);
-    r[2].setY(w2l.fMap[1][2]);
-    o   .setY(w2l.fMap[1][3]);
-    
-    r[0].setZ(w2l.fMap[2][0]);
-    r[1].setZ(w2l.fMap[2][1]);
-    r[2].setZ(w2l.fMap[2][2]);
-    o   .setZ(w2l.fMap[2][3]);
+    btTransform & t = physic->obj->getWorldTransform();
+    btMatrix3x3 & r = t.getBasis();
+
+    r[0]         .setValue(w2l.fMap[0][0], w2l.fMap[1][0], w2l.fMap[2][0]);
+    r[0]         .setValue(w2l.fMap[0][1], w2l.fMap[1][1], w2l.fMap[2][1]);
+    r[0]         .setValue(w2l.fMap[0][2], w2l.fMap[1][2], w2l.fMap[2][2]);
+    t.getOrigin().setValue(w2l.fMap[0][3], w2l.fMap[1][3], w2l.fMap[2][3]);
 }
 
 int plPhysicalImpl::GetGroup () const { return physic->group; }
@@ -683,7 +694,7 @@ void plPhysicalImpl::SetSyncState (hsPoint3* pos, hsQuat* rot, hsVector3* linV, 
 }
 
 void plPhysicalImpl::ExcludeRegionHack (bool cleared) {
-    hsAssert(false, "TODO");
+//    hsAssert(false, "TODO");
 }
 
 plDrawableSpans * plPhysicalImpl::CreateProxy (hsGMaterial* mat, hsTArray<uint32_t>& idx, plDrawableSpans* addTo) {
@@ -692,8 +703,8 @@ plDrawableSpans * plPhysicalImpl::CreateProxy (hsGMaterial* mat, hsTArray<uint32
     btCollisionShape & shape = *physic->obj->getCollisionShape();
 
     bool blended = ((mat->GetLayer(0)->GetBlendFlags() & hsGMatState::kBlendMask));
-    hsMatrix44 l2w;
-    physic->obj->getWorldTransform().getOpenGLMatrix(*l2w.fMap);
+    hsMatrix44 l2w, w2l;
+    GetTransform(w2l, l2w);
 
     if (!physic->vertices.empty())
     {
@@ -715,7 +726,8 @@ plDrawableSpans * plPhysicalImpl::CreateProxy (hsGMaterial* mat, hsTArray<uint32
             break;
 
         default:
-            hsAssert(false, "physical proxy is not implemented for this bullet shape");
+            //hsAssert(false, "physical proxy is not implemented for this bullet shape");
+            break;
         }
 
     return addTo;
