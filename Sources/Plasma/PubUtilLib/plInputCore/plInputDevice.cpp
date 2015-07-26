@@ -203,7 +203,7 @@ void plKeyboardDevice::HandleWindowActivate(bool bActive, HWND hWnd)
     if (bActive)
     {
         // Refresh the caps lock state
-        HandleKeyEvent(KEYDOWN, KEY_CAPSLOCK, nil, false);
+        HandleKeyEvent(KEYDOWN, KEY_CAPSLOCK, false, false);
     }
     else
     {
